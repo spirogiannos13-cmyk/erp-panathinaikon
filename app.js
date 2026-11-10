@@ -1,7 +1,7 @@
 const boards = {
   tables: {
-    title: "Πλάνο τραπεζιών",
-    description: "Κατάσταση τραπεζιών σε πραγματικό χρόνο",
+    title: "Κάτοψη τραπεζιών",
+    description: "Επίλεξε τραπέζι για να δεις και να αλλάξεις την κατάστασή του",
     items: [
       ["Τραπέζι 01","Ελεύθερο","free","2 θέσεις","—"],
       ["Τραπέζι 02","Κατειλημμένο","busy","2 άτομα · 18′","€28,50"],
@@ -18,8 +18,7 @@ const boards = {
     ]
   },
   takeaway: {
-    title: "Πλάνο Take Away",
-    description: "Παρακολούθηση παραγγελιών παραλαβής",
+    title: "Πλάνο Take Away", description: "Παρακολούθηση παραγγελιών παραλαβής",
     items: [
       ["#TA-1042","Νέα","reserved","Παραλαβή · 19:25","€24,50"],
       ["#TA-1041","Σε προετοιμασία","busy","Παραλαβή · 19:20","€18,00"],
@@ -28,8 +27,7 @@ const boards = {
     ]
   },
   delivery: {
-    title: "Πλάνο Delivery",
-    description: "Ροή παραγγελιών και διανομέων",
+    title: "Πλάνο Delivery", description: "Ροή παραγγελιών και διανομέων",
     items: [
       ["#DL-2088","Νέα","reserved","Νέα παραγγελία · 19:24","€31,50"],
       ["#DL-2087","Σε προετοιμασία","busy","Κουζίνα · 19:18","€22,00"],
@@ -41,23 +39,68 @@ const boards = {
     ]
   }
 };
+const tableStates = ["free", "busy", "reserved"];
+const tableLabels = {free:"Ελεύθερο",busy:"Κατειλημμένο",reserved:"Κράτηση"};
+let savedStates = {};
+try { savedStates = JSON.parse(localStorage.getItem("panathinaikon-table-states") || "{}"); } catch { savedStates = {}; }
 let activeBoard = "tables";
 let showAll = true;
 const grid = document.querySelector("#orderGrid");
 const title = document.querySelector("#boardTitle");
 const description = document.querySelector("#boardDescription");
 const toast = document.querySelector("#toast");
+const summary = document.querySelector("#floorplanSummary");
+const help = document.querySelector("#tableHelp");
+
+function currentTables() {
+  return boards.tables.items.map((item,index) => {
+    const state = savedStates[index] || item[2];
+    return {...item, state, label:tableLabels[state], index};
+  });
+}
 function renderBoard() {
   const board = boards[activeBoard];
   title.textContent = board.title;
   description.textContent = board.description;
+  const isTables = activeBoard === "tables";
+  summary.hidden = !isTables;
+  help.hidden = !isTables;
+  if (isTables) {
+    const tables = currentTables();
+    const free = tables.filter(t=>t.state==="free").length;
+    const busy = tables.filter(t=>t.state==="busy").length;
+    const reserved = tables.filter(t=>t.state==="reserved").length;
+    summary.innerHTML = `<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
+    grid.className = "order-grid floorplan-grid";
+    grid.innerHTML = tables.map(t => `
+      <button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${t[0]}, ${t.label}">
+        <span class="table-topline"><span class="table-symbol">▦</span><span class="table-status">${t.label}</span></span>
+        <strong>${t[0]}</strong>
+        <span class="table-meta">${t[3]}</span>
+        <span class="table-bottom"><span>${t.state==="busy"?"Τρέχων λογαριασμός":"Χωρητικότητα"}</span><b>${t[4]}</b></span>
+      </button>`).join("");
+    return;
+  }
+  grid.className = "order-grid";
+  summary.hidden = true;
   grid.innerHTML = board.items.filter(item => showAll || item[2] !== "free").map(item => `
     <article class="order-card ${item[2]}">
       <div class="order-card-head"><span class="order-number">${item[0]}</span><span class="status-pill">${item[1]}</span></div>
       <div class="order-detail">${item[3]}</div>
-      <div class="order-card-foot"><span>${activeBoard === "tables" ? "Τρέχων λογαριασμός" : "Σύνολο παραγγελίας"}</span><strong>${item[4]}</strong></div>
+      <div class="order-card-foot"><span>Σύνολο παραγγελίας</span><strong>${item[4]}</strong></div>
     </article>`).join("");
 }
+grid.addEventListener("click", event => {
+  const tile = event.target.closest("[data-table-index]");
+  if (!tile) return;
+  const index = Number(tile.dataset.tableIndex);
+  const current = savedStates[index] || boards.tables.items[index][2];
+  const next = tableStates[(tableStates.indexOf(current)+1)%tableStates.length];
+  savedStates[index] = next;
+  localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
+  renderBoard();
+  showToast(`${boards.tables.items[index][0]}: ${tableLabels[next]}`);
+});
 document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => {
   activeBoard = button.dataset.tab;
   document.querySelectorAll("[data-tab]").forEach(tab => {
@@ -78,7 +121,7 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
   localStorage.setItem("panathinaikon-theme", dark ? "dark" : "light");
 });
 if (localStorage.getItem("panathinaikon-theme") === "dark") document.body.classList.add("dark");
-document.querySelector("#newOrder").addEventListener("click", () => showToast("Η φόρμα νέας παραγγελίας θα προστεθεί στο επόμενο βήμα."));
+document.querySelector("#newOrder").addEventListener("click", () => showToast("Η δημιουργία πραγματικής παραγγελίας θα συνδεθεί στο επόμενο στάδιο."));
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
