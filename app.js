@@ -128,6 +128,22 @@ const orderType = document.querySelector("#orderType");
 const tableField = document.querySelector("#tableField");
 let demoOrders = [];
 try { demoOrders = JSON.parse(localStorage.getItem("panathinaikon-demo-orders") || "[]"); } catch { demoOrders = []; }
+demoOrders.slice().reverse().forEach(order => {
+  if (!order || !order.type || !Array.isArray(order.item)) return;
+  if (order.type === "tables") {
+    const match = String(order.item[0]).match(/(\\d+)$/);
+    if (match) {
+      const index = Number(match[1]) - 1;
+      if (index >= 0 && index < boards.tables.items.length) {
+        boards.tables.items[index] = order.item;
+        savedStates[index] = "busy";
+      }
+    }
+  } else if (boards[order.type] && !boards[order.type].items.some(row => row[0] === order.item[0])) {
+    boards[order.type].items.unshift(order.item);
+  }
+});
+localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
 
 function openOrderModal() {
   orderForm.reset();
