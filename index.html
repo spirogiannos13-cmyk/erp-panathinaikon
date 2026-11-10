@@ -46,7 +46,7 @@
 
       <section class="page-heading">
         <div><div class="eyebrow">ΤΡΙΤΗ, 10 ΝΟΕΜΒΡΙΟΥ 2026</div><h1>Καλησπέρα, Σπύρο <span>✳</span></h1><p>Μια γρήγορη ματιά στη σημερινή λειτουργία του καταστήματος.</p></div>
-        <button class="primary-button" id="newOrder"><span>＋</span> Νέα παραγγελία</button>
+        
       </section>
 
       <section class="stats-grid" aria-label="Στατιστικά ημέρας">
@@ -69,20 +69,19 @@
       <footer class="footer"><span>© 2026 PANATHINAIKON ERP</span><span>Έκδοση 0.1.0 · Demo περιβάλλον</span></footer>
     </main>
   </div>
-  <div class="modal-backdrop" id="orderModal" hidden>
-    <section class="order-modal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
-      <div class="modal-heading"><div><div class="eyebrow">ΚΑΤΑΧΩΡΙΣΗ</div><h2 id="orderModalTitle">Νέα παραγγελία</h2></div><button class="modal-close" type="button" id="closeOrderModal" aria-label="Κλείσιμο">×</button></div>
-      <form id="orderForm">
-        <label>Τύπος παραγγελίας<select id="orderType" name="type"><option value="tables">Τραπέζι</option><option value="takeaway">Take Away</option><option value="delivery">Delivery</option></select></label>
-        <label id="tableField">Τραπέζι<select id="orderTable" name="table"><option value="">Επιλογή τραπεζιού</option><option value="01">Τραπέζι 01</option><option value="02">Τραπέζι 02</option><option value="03">Τραπέζι 03</option><option value="04">Τραπέζι 04</option><option value="05">Τραπέζι 05</option><option value="06">Τραπέζι 06</option><option value="07">Τραπέζι 07</option><option value="08">Τραπέζι 08</option><option value="09">Τραπέζι 09</option><option value="10">Τραπέζι 10</option><option value="11">Τραπέζι 11</option><option value="12">Τραπέζι 12</option></select></label>
-        <label>Πελάτης<input id="orderCustomer" name="customer" type="text" maxlength="60" placeholder="Όνομα πελάτη (προαιρετικό)"></label>
-        <label>Ποσό (€)<input id="orderAmount" name="amount" type="number" min="0.01" step="0.01" required placeholder="π.χ. 24,50"></label>
-        <label>Σημειώσεις<textarea id="orderNote" name="note" rows="2" maxlength="240" placeholder="Προαιρετικές σημειώσεις"></textarea></label>
-        <p class="demo-notice">Demo: η παραγγελία αποθηκεύεται μόνο σε αυτόν τον browser.</p>
-        <div class="modal-actions"><button class="secondary-button" type="button" id="cancelOrder">Ακύρωση</button><button class="primary-button" type="submit">＋ Καταχώριση</button></div>
-      </form>
+  <div class="modal-backdrop" id="tableModal" hidden>
+    <section class="order-modal table-management-modal" role="dialog" aria-modal="true" aria-labelledby="tableModalTitle">
+      <div class="modal-heading"><div><div class="eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΟΥ</div><h2 id="tableModalTitle">Τραπέζι 01</h2><p id="tableModalSubtitle">Ελεύθερο τραπέζι</p></div><button class="modal-close" type="button" id="closeTableModal" aria-label="Κλείσιμο">×</button></div>
+      <div class="table-action-grid">
+        <button class="table-action primary-action" id="tableStartOrder"><span>＋</span><strong>Νέα παραγγελία</strong><small>Προσθήκη ειδών στο τραπέζι</small></button>
+        <button class="table-action" id="tableReceipt"><span>▤</span><strong>Έκδοση απόδειξης</strong><small>Προεπισκόπηση έκδοσης (demo)</small></button>
+        <button class="table-action" id="tableDiscount"><span>%</span><strong>Έκπτωση</strong><small>Εφαρμογή έκπτωσης στον λογαριασμό</small></button>
+        <button class="table-action" id="tableClose"><span>✓</span><strong>Κλείσιμο τραπεζιού</strong><small>Ολοκλήρωση και αποδέσμευση</small></button>
+      </div>
+      <div class="table-management-note" id="tableManagementNote">Οι ενέργειες είναι ενδεικτικές λειτουργίες demo.</div>
     </section>
   </div>
+  <div class="modal-backdrop" id="receiptModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">DEMO ΕΚΔΟΣΗ</div><h2>Απόδειξη</h2></div><button class="modal-close" type="button" id="closeReceiptModal">×</button></div><p id="receiptText">Η έκδοση απόδειξης θα συνδεθεί με τον φορολογικό μηχανισμό στο επόμενο στάδιο.</p><button class="primary-button" type="button" id="receiptOk">Εντάξει</button></section></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
