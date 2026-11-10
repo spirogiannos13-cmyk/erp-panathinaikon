@@ -52,7 +52,8 @@ function renderBoard(){
 }
 function openTable(index){selectedTable=index;const row=boards.tables.items[index];document.querySelector("#tableModalTitle").textContent=row[0];document.querySelector("#tableModalSubtitle").textContent=row[1]+" · "+row[4];document.querySelector("#tableManagementNote").textContent=row[2]==="busy"?"Διαχείριση ενεργού λογαριασμού. Οι ενέργειες απόδειξης/έκπτωσης είναι demo.":"Ελεύθερο τραπέζι. Μπορείς να ξεκινήσεις νέα παραγγελία.";tableModal.hidden=false;}
 function closeTable(){tableModal.hidden=true;}
-grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput")orderCustomer=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;});\ngrid.addEventListener("click",event=>{
+grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput")orderCustomer=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;});
+grid.addEventListener("click",event=>{
  const tile=event.target.closest("[data-table-index]");if(tile){openTable(Number(tile.dataset.tableIndex));return;}
  const add=event.target.closest("[data-add-product]");if(add){const n=add.dataset.addProduct;cart[n]=(cart[n]||0)+1;renderTakeaway();return;}
  const qty=event.target.closest("[data-qty]");if(qty){const n=qty.dataset.name;cart[n]=Math.max(0,(cart[n]||0)+Number(qty.dataset.qty));renderTakeaway();return;}
