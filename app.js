@@ -121,7 +121,95 @@ document.querySelector("#themeToggle").addEventListener("click", () => {
   localStorage.setItem("panathinaikon-theme", dark ? "dark" : "light");
 });
 if (localStorage.getItem("panathinaikon-theme") === "dark") document.body.classList.add("dark");
-document.querySelector("#newOrder").addEventListener("click", () => showToast("Η δημιουργία πραγματικής παραγγελίας θα συνδεθεί στο επόμενο στάδιο."));
+
+const orderModal = document.querySelector("#orderModal");
+const orderForm = document.querySelector("#orderForm");
+const orderType = document.querySelector("#orderType");
+const tableField = document.querySelector("#tableField");
+let demoOrders = [];
+try { demoOrders = JSON.parse(localStorage.getItem("panathinaikon-demo-orders") || "[]"); } catch { demoOrders = []; }
+demoOrders.slice().reverse().forEach(order => {
+  if (!order || !order.type || !Array.isArray(order.item)) return;
+  if (order.type === "tables") {
+    const match = String(order.item[0]).match(/(\\d+)$/);
+    if (match) {
+      const index = Number(match[1]) - 1;
+      if (index >= 0 && index < boards.tables.items.length) {
+        boards.tables.items[index] = order.item;
+        savedStates[index] = "busy";
+      }
+    }
+  } else if (boards[order.type] && !boards[order.type].items.some(row => row[0] === order.item[0])) {
+    boards[order.type].items.unshift(order.item);
+  }
+});
+localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
+
+function openOrderModal() {
+  orderForm.reset();
+  updateTableField();
+  orderModal.hidden = false;
+  document.querySelector("#orderType").focus();
+}
+function closeOrderModal() {
+  orderModal.hidden = true;
+}
+function updateTableField() {
+  const isTable = orderType.value === "tables";
+  tableField.hidden = !isTable;
+  document.querySelector("#orderTable").required = isTable;
+}
+document.querySelector("#newOrder").addEventListener("click", openOrderModal);
+document.querySelector("#closeOrderModal").addEventListener("click", closeOrderModal);
+document.querySelector("#cancelOrder").addEventListener("click", closeOrderModal);
+orderModal.addEventListener("click", event => { if (event.target === orderModal) closeOrderModal(); });
+document.addEventListener("keydown", event => { if (event.key === "Escape" && !orderModal.hidden) closeOrderModal(); });
+orderType.addEventListener("change", updateTableField);
+orderForm.addEventListener("submit", event => {
+  event.preventDefault();
+  const type = orderType.value;
+  const amount = Number(document.querySelector("#orderAmount").value);
+  const customer = document.querySelector("#orderCustomer").value.trim();
+  const note = document.querySelector("#orderNote").value.trim();
+  const tableNumber = document.querySelector("#orderTable").value;
+  if (!Number.isFinite(amount) || amount <= 0) return;
+  let item;
+  const formattedAmount = amount.toLocaleString("el-GR", {style:"currency",currency:"EUR"});
+  const time = new Intl.DateTimeFormat("el-GR", {hour:"2-digit",minute:"2-digit"}).format(new Date());
+  const suffix = String(Date.now()).slice(-5);
+  if (type === "tables") {
+    if (!tableNumber) return;
+    const index = Number(tableNumber) - 1;
+    const current = savedStates[index] || boards.tables.items[index][2];
+    if (current === "busy") {
+      showToast("Το τραπέζι είναι ήδη κατειλημμένο.");
+      return;
+    }
+    savedStates[index] = "busy";
+    localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
+    const label = customer ? customer : "Νέα παραγγελία";
+    boards.tables.items[index] = [`Τραπέζι ${tableNumber}`, "Κατειλημμένο", "busy", `${label} · ${time}`, formattedAmount];
+    item = {id:`TB-${tableNumber}-${suffix}`, type, item:boards.tables.items[index], note};
+  } else {
+    const prefix = type === "takeaway" ? "#TA-" : "#DL-";
+    const status = "Νέα";
+    const detail = [customer, type === "takeaway" ? `Παραλαβή · ${time}` : `Νέα παραγγελία · ${time}`].filter(Boolean).join(" · ");
+    const row = [`${prefix}${suffix}`, status, "reserved", detail, formattedAmount];
+    boards[type].items.unshift(row);
+    item = {id:row[0], type, item:row, note};
+  }
+  demoOrders.unshift(item);
+  localStorage.setItem("panathinaikon-demo-orders", JSON.stringify(demoOrders));
+  activeBoard = type;
+  document.querySelectorAll("[data-tab]").forEach(tab => {
+    const selected = tab.dataset.tab === type;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", String(selected));
+  });
+  closeOrderModal();
+  renderBoard();
+  showToast("Η παραγγελία καταχωρίστηκε στο demo.");
+});
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");

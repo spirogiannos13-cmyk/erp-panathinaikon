@@ -22,3 +22,24 @@ body.dark .table-tile>strong,body.dark .floorplan-summary b{color:#e7eee8}
 @media(max-width:1150px){.floorplan-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.floorplan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.table-tile{padding:12px;min-height:126px}}
 @media(max-width:390px){.floorplan-grid{grid-template-columns:1fr}}
+
+/* Demo order-entry modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(13,30,20,.55);display:grid;place-items:center;padding:20px;z-index:20;backdrop-filter:blur(3px)}
+.modal-backdrop[hidden]{display:none}
+.order-modal{width:min(100%,480px);max-height:calc(100vh - 40px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 22px 70px rgba(0,0,0,.22)}
+.modal-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.modal-heading h2{font:700 21px Manrope,sans-serif;color:#203329;margin:6px 0 0}
+.modal-close{width:32px;height:32px;border:1px solid var(--line);border-radius:8px;background:transparent;color:#77857b;font-size:22px;cursor:pointer}
+#orderForm{display:grid;gap:13px}
+#orderForm label{display:grid;gap:6px;color:#59695f;font-size:10px;font-weight:700}
+#orderForm input,#orderForm select,#orderForm textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:inherit;padding:10px 11px;font:400 12px "DM Sans",sans-serif;outline:none}
+#orderForm input:focus,#orderForm select:focus,#orderForm textarea:focus{border-color:#69a47d;box-shadow:0 0 0 3px #69a47d20}
+#orderForm textarea{resize:vertical}
+.demo-notice{margin:0;color:#89968d;font-size:9px;line-height:1.5}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:5px}
+.secondary-button{height:39px;border:1px solid var(--line);border-radius:8px;background:transparent;color:#65746a;padding:0 15px;font-size:11px;font-weight:600;cursor:pointer}
+.modal-actions .primary-button{cursor:pointer}
+body.dark .order-modal{background:var(--panel)}
+body.dark .modal-heading h2{color:#e7eee8}
+body.dark #orderForm label{color:#c2cec5}
+@media(max-width:520px){.order-modal{padding:19px}.modal-actions>*{flex:1}}
