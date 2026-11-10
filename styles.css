@@ -60,3 +60,24 @@ body.dark .catalog-heading h3,body.dark .cart-heading h3,body.dark .product-info
 body.dark .table-action.primary-action,body.dark .category-tab.active{background:#203c2b;color:#9ed0ae}
 @media(max-width:1050px){.takeaway-layout{grid-template-columns:1fr}.cart-panel{position:static}.delivery-orders{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.table-action-grid{grid-template-columns:1fr 1fr}.delivery-summary{grid-template-columns:repeat(2,1fr)}.delivery-orders{grid-template-columns:1fr}.product-grid{grid-template-columns:1fr}.takeaway-layout{gap:10px}}
+
+/* Dashboard is a separate tab so order-taking gets the full workspace */
+.dashboard-view[hidden],#ordersHeading[hidden],#boardToolbar[hidden],.section-heading[hidden],#orderGrid[hidden]{display:none!important}
+.dashboard-view .page-heading{padding:24px 0 18px}
+.dashboard-view .stats-grid{margin-bottom:10px}
+.compact-heading{padding:18px 0 14px}
+.compact-heading h1{font-size:22px;margin:5px 0}
+.compact-heading p{font-size:10px}
+.view-tabs{margin-bottom:14px}
+.product-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.product-button{appearance:none;width:100%;min-height:150px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px;background:var(--panel);color:inherit;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s,box-shadow .15s}
+.product-button:hover{transform:translateY(-2px);border-color:#9ac5a7;box-shadow:0 8px 22px rgba(20,55,37,.09)}
+.product-button:focus-visible{outline:3px solid #7bb891;outline-offset:2px}
+.product-button .product-placeholder{width:48px;height:48px;font-size:24px}
+.product-button .product-info{gap:5px}
+.product-button .product-info strong{font-size:13px}
+.product-button .product-info small{font-size:10px}
+.product-button .product-info b{font-size:13px}
+.product-button .add-product{width:auto;height:32px;display:flex;align-items:center;justify-content:center;padding:0 12px;font-size:11px;font-weight:700}
+@media(max-width:1150px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.product-button{min-height:132px;padding:11px}.product-button .product-info strong{font-size:11px}}
