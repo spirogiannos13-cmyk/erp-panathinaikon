@@ -38,6 +38,13 @@ function renderDelivery(){
  grid.innerHTML=`<div class="delivery-summary">${stages.map(s=>`<div class="delivery-stage-count"><span>${s.label}</span><b>${boards.delivery.items.filter(o=>o[2]===s.key).length}</b></div>`).join("")}</div><div class="delivery-orders">${boards.delivery.items.map((o,i)=>{const stage=stages.find(s=>s.key===o[2])||stages[0];const receipt=o.receipt?"Απόδειξη εκδόθηκε":"Απόδειξη εκκρεμεί";return `<article class="delivery-card"><div class="delivery-card-top"><strong>${o[0]}</strong><span class="delivery-status ${o[2]}">${stage.label}</span></div><p>${o[3]}</p><div class="delivery-card-meta"><b>${o[4]}</b><span class="${o.receipt?"receipt-done":"receipt-pending"}">▤ ${receipt}</span></div><div class="delivery-card-actions">${o[2]==="ready"&&!o.receipt?`<button class="secondary-button" data-receipt="${i}">Έκδοση απόδειξης</button>`:""}${stage.next?`<button class="primary-button" data-delivery-next="${i}" ${o[2]==="ready"&&!o.receipt?"disabled":""}>${o[2]==="ready"?"Αναχώρηση διανομέα":stage.action}</button>`:'<span class="completed-label">✓ Ολοκληρώθηκε</span>'}</div></article>`}).join("")}</div>`;
 }
 function renderBoard(){
+ const dashboard=activeBoard==="dashboard";
+ document.querySelector("#dashboardView").hidden=!dashboard;
+ document.querySelector("#ordersHeading").hidden=dashboard;
+ document.querySelector("#boardToolbar").hidden=dashboard;
+ document.querySelector(".section-heading").hidden=dashboard;
+ grid.hidden=dashboard;summary.hidden=dashboard;help.hidden=dashboard;
+ if(dashboard)return;
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
