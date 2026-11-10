@@ -1,220 +1,77 @@
 const boards = {
-  tables: {
-    title: "Κάτοψη τραπεζιών",
-    description: "Επίλεξε τραπέζι για να δεις και να αλλάξεις την κατάστασή του",
-    items: [
-      ["Τραπέζι 01","Ελεύθερο","free","2 θέσεις","—"],
-      ["Τραπέζι 02","Κατειλημμένο","busy","2 άτομα · 18′","€28,50"],
-      ["Τραπέζι 03","Κατειλημμένο","busy","4 άτομα · 42′","€64,00"],
-      ["Τραπέζι 04","Κράτηση","reserved","4 άτομα · 20:30","—"],
-      ["Τραπέζι 05","Ελεύθερο","free","4 θέσεις","—"],
-      ["Τραπέζι 06","Κατειλημμένο","busy","3 άτομα · 12′","€41,00"],
-      ["Τραπέζι 07","Ελεύθερο","free","2 θέσεις","—"],
-      ["Τραπέζι 08","Κατειλημμένο","busy","5 άτομα · 56′","€82,00"],
-      ["Τραπέζι 09","Κράτηση","reserved","2 άτομα · 21:00","—"],
-      ["Τραπέζι 10","Κατειλημμένο","busy","2 άτομα · 8′","€19,50"],
-      ["Τραπέζι 11","Ελεύθερο","free","4 θέσεις","—"],
-      ["Τραπέζι 12","Κατειλημμένο","busy","3 άτομα · 31′","€47,00"]
-    ]
-  },
-  takeaway: {
-    title: "Πλάνο Take Away", description: "Παρακολούθηση παραγγελιών παραλαβής",
-    items: [
-      ["#TA-1042","Νέα","reserved","Παραλαβή · 19:25","€24,50"],
-      ["#TA-1041","Σε προετοιμασία","busy","Παραλαβή · 19:20","€18,00"],
-      ["#TA-1040","Έτοιμη","free","Παραλαβή · 19:15","€32,00"],
-      ["#TA-1039","Νέα","reserved","Παραλαβή · 19:30","€14,50"]
-    ]
-  },
-  delivery: {
-    title: "Πλάνο Delivery", description: "Ροή παραγγελιών και διανομέων",
-    items: [
-      ["#DL-2088","Νέα","reserved","Νέα παραγγελία · 19:24","€31,50"],
-      ["#DL-2087","Σε προετοιμασία","busy","Κουζίνα · 19:18","€22,00"],
-      ["#DL-2086","Σε διανομή","free","Διανομέας: Νίκος","€27,50"],
-      ["#DL-2085","Έτοιμη","free","Αναμονή διανομέα","€19,00"],
-      ["#DL-2084","Σε προετοιμασία","busy","Κουζίνα · 19:10","€42,00"],
-      ["#DL-2083","Ολοκληρώθηκε","free","Παράδοση · 19:02","€16,50"],
-      ["#DL-2082","Σε διανομή","free","Διανομέας: Γιώργος","€35,00"]
-    ]
-  }
+  tables: {title:"Κάτοψη τραπεζιών",description:"Πάτησε σε τραπέζι για να ανοίξεις τη διαχείρισή του",items:[
+    ["Τραπέζι 01","Ελεύθερο","free","2 θέσεις","—"],["Τραπέζι 02","Κατειλημμένο","busy","2 άτομα · 18′","€28,50"],["Τραπέζι 03","Κατειλημμένο","busy","4 άτομα · 42′","€64,00"],["Τραπέζι 04","Κράτηση","reserved","4 άτομα · 20:30","—"],["Τραπέζι 05","Ελεύθερο","free","4 θέσεις","—"],["Τραπέζι 06","Κατειλημμένο","busy","3 άτομα · 12′","€41,00"],["Τραπέζι 07","Ελεύθερο","free","2 θέσεις","—"],["Τραπέζι 08","Κατειλημμένο","busy","5 άτομα · 56′","€82,00"],["Τραπέζι 09","Κράτηση","reserved","2 άτομα · 21:00","—"],["Τραπέζι 10","Κατειλημμένο","busy","2 άτομα · 8′","€19,50"],["Τραπέζι 11","Ελεύθερο","free","4 θέσεις","—"],["Τραπέζι 12","Κατειλημμένο","busy","3 άτομα · 31′","€47,00"]
+  ]},
+  takeaway:{title:"Πακέτο / Take Away",description:"Επίλεξε απευθείας είδη για να δημιουργήσεις παραγγελία",items:[]},
+  delivery:{title:"Διαχείριση Delivery",description:"Παρακολούθηση προετοιμασίας, αποδείξεων και διανομέων",items:[
+    ["#DL-2088","Νέα","new","Νέα παραγγελία · 19:24","€31,50"],["#DL-2087","Σε προετοιμασία","preparing","Κουζίνα · 19:18","€22,00"],["#DL-2086","Σε διανομή","dispatched","Διανομέας: Νίκος","€27,50"],["#DL-2085","Έτοιμη","ready","Αναμονή διανομέα","€19,00"],["#DL-2084","Σε προετοιμασία","preparing","Κουζίνα · 19:10","€42,00"],["#DL-2083","Παραδόθηκε","completed","Παράδοση · 19:02","€16,50"],["#DL-2082","Σε διανομή","dispatched","Διανομέας: Γιώργος","€35,00"]
+  ]}
 };
-const tableStates = ["free", "busy", "reserved"];
-const tableLabels = {free:"Ελεύθερο",busy:"Κατειλημμένο",reserved:"Κράτηση"};
-let savedStates = {};
-try { savedStates = JSON.parse(localStorage.getItem("panathinaikon-table-states") || "{}"); } catch { savedStates = {}; }
-let activeBoard = "tables";
-let showAll = true;
-const grid = document.querySelector("#orderGrid");
-const title = document.querySelector("#boardTitle");
-const description = document.querySelector("#boardDescription");
-const toast = document.querySelector("#toast");
-const summary = document.querySelector("#floorplanSummary");
-const help = document.querySelector("#tableHelp");
-
-function currentTables() {
-  return boards.tables.items.map((item,index) => {
-    const state = savedStates[index] || item[2];
-    return {...item, state, label:tableLabels[state], index};
-  });
+const menu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];
+const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
+let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",tableDiscounts={};
+const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
+const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
+const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
+function currentTables(){return boards.tables.items.map((item,index)=>({...item,state:savedStates[index]||item[2],index}));}
+function saveTables(){localStorage.setItem("panathinaikon-table-states",JSON.stringify(savedStates));localStorage.setItem("panathinaikon-tables",JSON.stringify(boards.tables.items));}
+try{const persisted=JSON.parse(localStorage.getItem("panathinaikon-tables")||"null");if(Array.isArray(persisted)&&persisted.length===12)boards.tables.items=persisted;}catch{}
+function setBoardTab(type){activeBoard=type;document.querySelectorAll("[data-tab]").forEach(tab=>{const on=tab.dataset.tab===type;tab.classList.toggle("active",on);tab.setAttribute("aria-selected",String(on));});renderBoard();}
+function renderTables(){
+ const tables=currentTables(),free=tables.filter(t=>t.state==="free").length,busy=tables.filter(t=>t.state==="busy").length,reserved=tables.filter(t=>t.state==="reserved").length;
+ summary.hidden=false;help.hidden=false;summary.innerHTML=`<span><b>12</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
+ grid.className="order-grid floorplan-grid";
+ grid.innerHTML=tables.map(t=>`<button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${t[0]}, ${t[1]}"><span class="table-topline"><span class="table-symbol">▦</span><span class="table-status">${t[1]}</span></span><strong>${t[0]}</strong><span class="table-meta">${t[3]}</span><span class="table-bottom"><span>Λογαριασμός</span><b>${t[4]}</b></span></button>`).join("");
 }
-function renderBoard() {
-  const board = boards[activeBoard];
-  title.textContent = board.title;
-  description.textContent = board.description;
-  const isTables = activeBoard === "tables";
-  summary.hidden = !isTables;
-  help.hidden = !isTables;
-  if (isTables) {
-    const tables = currentTables();
-    const free = tables.filter(t=>t.state==="free").length;
-    const busy = tables.filter(t=>t.state==="busy").length;
-    const reserved = tables.filter(t=>t.state==="reserved").length;
-    summary.innerHTML = `<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
-    grid.className = "order-grid floorplan-grid";
-    grid.innerHTML = tables.map(t => `
-      <button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${t[0]}, ${t.label}">
-        <span class="table-topline"><span class="table-symbol">▦</span><span class="table-status">${t.label}</span></span>
-        <strong>${t[0]}</strong>
-        <span class="table-meta">${t[3]}</span>
-        <span class="table-bottom"><span>${t.state==="busy"?"Τρέχων λογαριασμός":"Χωρητικότητα"}</span><b>${t[4]}</b></span>
-      </button>`).join("");
-    return;
-  }
-  grid.className = "order-grid";
-  summary.hidden = true;
-  grid.innerHTML = board.items.filter(item => showAll || item[2] !== "free").map(item => `
-    <article class="order-card ${item[2]}">
-      <div class="order-card-head"><span class="order-number">${item[0]}</span><span class="status-pill">${item[1]}</span></div>
-      <div class="order-detail">${item[3]}</div>
-      <div class="order-card-foot"><span>Σύνολο παραγγελίας</span><strong>${item[4]}</strong></div>
-    </article>`).join("");
+function renderTakeaway(){
+ summary.hidden=true;help.hidden=true;grid.className="takeaway-layout";
+ const categories=["Όλα",...new Set(menu.map(x=>x.category))];
+ const products=menu.filter(p=>selectedCategory==="Όλα"||p.category===selectedCategory);
+ const cartEntries=Object.entries(cart).filter(([,qty])=>qty>0);
+ const total=cartEntries.reduce((sum,[name,qty])=>sum+menu.find(p=>p.name===name).price*qty,0);
+ grid.innerHTML=`<section class="catalog-panel"><div class="catalog-heading"><div><h3>Κατάλογος ειδών</h3><p>Επίλεξε προϊόντα για την παραγγελία</p></div><span class="catalog-count">${menu.length} είδη</span></div><div class="category-tabs">${categories.map(c=>`<button class="category-tab ${c===selectedCategory?"active":""}" data-category="${c}">${c}</button>`).join("")}</div><div class="product-grid">${products.map(p=>`<article class="product-tile"><div class="product-placeholder">${p.category==="Καφέδες"?"☕":p.category==="Αναψυκτικά"?"🥤":p.category==="Σαλάτες"?"🥗":"🍽"}</div><div class="product-info"><strong>${p.name}</strong><small>${p.category}</small><b>${money(p.price)}</b></div><button class="add-product" data-add-product="${p.name}" aria-label="Προσθήκη ${p.name}">＋</button></article>`).join("")}</div></section><aside class="cart-panel"><div class="cart-heading"><h3>Τρέχουσα παραγγελία</h3><span>${cartEntries.reduce((s,[,q])=>s+q,0)} τεμ.</span></div><div class="cart-items">${cartEntries.length?cartEntries.map(([name,qty])=>{const p=menu.find(x=>x.name===name);return `<div class="cart-row"><div><strong>${name}</strong><small>${money(p.price)} / τεμ.</small></div><div class="quantity-control"><button data-qty="-1" data-name="${name}">−</button><b>${qty}</b><button data-qty="1" data-name="${name}">＋</button></div><strong>${money(p.price*qty)}</strong></div>`}).join(""):'<p class="empty-cart">Δεν έχεις προσθέσει είδη ακόμη.</p>'}</div><div class="cart-total"><span>Σύνολο</span><strong>${money(total)}</strong></div><button class="primary-button checkout-button" id="submitTakeaway" ${cartEntries.length?"":"disabled"}>Καταχώριση παραγγελίας</button></aside>`;
 }
-grid.addEventListener("click", event => {
-  const tile = event.target.closest("[data-table-index]");
-  if (!tile) return;
-  const index = Number(tile.dataset.tableIndex);
-  const current = savedStates[index] || boards.tables.items[index][2];
-  const next = tableStates[(tableStates.indexOf(current)+1)%tableStates.length];
-  savedStates[index] = next;
-  localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
-  renderBoard();
-  showToast(`${boards.tables.items[index][0]}: ${tableLabels[next]}`);
+function renderDelivery(){
+ summary.hidden=true;help.hidden=true;grid.className="delivery-board";
+ const stages=deliveryStages;
+ grid.innerHTML=`<div class="delivery-summary">${stages.map(s=>`<div class="delivery-stage-count"><span>${s.label}</span><b>${boards.delivery.items.filter(o=>o[2]===s.key).length}</b></div>`).join("")}</div><div class="delivery-orders">${boards.delivery.items.map((o,i)=>{const stage=stages.find(s=>s.key===o[2])||stages[0];const receipt=o.receipt?"Απόδειξη εκδόθηκε":"Απόδειξη εκκρεμεί";return `<article class="delivery-card"><div class="delivery-card-top"><strong>${o[0]}</strong><span class="delivery-status ${o[2]}">${stage.label}</span></div><p>${o[3]}</p><div class="delivery-card-meta"><b>${o[4]}</b><span class="${o.receipt?"receipt-done":"receipt-pending"}">▤ ${receipt}</span></div><div class="delivery-card-actions">${o[2]==="ready"&&!o.receipt?`<button class="secondary-button" data-receipt="${i}">Έκδοση απόδειξης</button>`:""}${stage.next?`<button class="primary-button" data-delivery-next="${i}">${stage.action}</button>`:'<span class="completed-label">✓ Ολοκληρώθηκε</span>'}</div></article>`}).join("")}</div>`;
+}
+function renderBoard(){
+ const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
+ if(activeBoard==="tables"){renderTables();return;}
+ if(activeBoard==="takeaway"){renderTakeaway();return;}
+ renderDelivery();
+}
+function openTable(index){selectedTable=index;const row=boards.tables.items[index];document.querySelector("#tableModalTitle").textContent=row[0];document.querySelector("#tableModalSubtitle").textContent=row[1]+" · "+row[4];document.querySelector("#tableManagementNote").textContent=row[2]==="busy"?"Διαχείριση ενεργού λογαριασμού. Οι ενέργειες απόδειξης/έκπτωσης είναι demo.":"Ελεύθερο τραπέζι. Μπορείς να ξεκινήσεις νέα παραγγελία.";tableModal.hidden=false;}
+function closeTable(){tableModal.hidden=true;}
+grid.addEventListener("click",event=>{
+ const tile=event.target.closest("[data-table-index]");if(tile){openTable(Number(tile.dataset.tableIndex));return;}
+ const add=event.target.closest("[data-add-product]");if(add){const n=add.dataset.addProduct;cart[n]=(cart[n]||0)+1;renderTakeaway();return;}
+ const qty=event.target.closest("[data-qty]");if(qty){const n=qty.dataset.name;cart[n]=Math.max(0,(cart[n]||0)+Number(qty.dataset.qty));renderTakeaway();return;}
+ const category=event.target.closest("[data-category]");if(category){selectedCategory=category.dataset.category;renderTakeaway();return;}
+ const next=event.target.closest("[data-delivery-next]");if(next){const i=Number(next.dataset.deliveryNext),stage=deliveryStages.find(s=>s.key===boards.delivery.items[i][2]);if(stage?.next){boards.delivery.items[i][2]=stage.next;boards.delivery.items[i][1]=deliveryStages.find(s=>s.key===stage.next).label;if(stage.next==="dispatched"&&!boards.delivery.items[i].receipt){boards.delivery.items[i].receipt=true;}persistDelivery();renderDelivery();}return;}
+ const receipt=event.target.closest("[data-receipt]");if(receipt){const i=Number(receipt.dataset.receipt);boards.delivery.items[i].receipt=true;persistDelivery();renderDelivery();showToast("Η απόδειξη σημειώθηκε ως εκδοθείσα (demo).");return;}
+ if(event.target.closest("#submitTakeaway")){submitTakeaway();}
 });
-document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => {
-  activeBoard = button.dataset.tab;
-  document.querySelectorAll("[data-tab]").forEach(tab => {
-    const selected = tab === button;
-    tab.classList.toggle("active", selected);
-    tab.setAttribute("aria-selected", String(selected));
-  });
-  renderBoard();
-}));
-document.querySelector("#filterButton").addEventListener("click", event => {
-  showAll = !showAll;
-  event.currentTarget.querySelector("span").textContent = showAll ? "Όλα" : "Σε εξέλιξη";
-  renderBoard();
-});
-document.querySelector("#themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-  const dark = document.body.classList.contains("dark");
-  localStorage.setItem("panathinaikon-theme", dark ? "dark" : "light");
-});
-if (localStorage.getItem("panathinaikon-theme") === "dark") document.body.classList.add("dark");
-
-const orderModal = document.querySelector("#orderModal");
-const orderForm = document.querySelector("#orderForm");
-const orderType = document.querySelector("#orderType");
-const tableField = document.querySelector("#tableField");
-let demoOrders = [];
-try { demoOrders = JSON.parse(localStorage.getItem("panathinaikon-demo-orders") || "[]"); } catch { demoOrders = []; }
-demoOrders.slice().reverse().forEach(order => {
-  if (!order || !order.type || !Array.isArray(order.item)) return;
-  if (order.type === "tables") {
-    const match = String(order.item[0]).match(/(\\d+)$/);
-    if (match) {
-      const index = Number(match[1]) - 1;
-      if (index >= 0 && index < boards.tables.items.length) {
-        boards.tables.items[index] = order.item;
-        savedStates[index] = "busy";
-      }
-    }
-  } else if (boards[order.type] && !boards[order.type].items.some(row => row[0] === order.item[0])) {
-    boards[order.type].items.unshift(order.item);
-  }
-});
-localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
-
-function openOrderModal() {
-  orderForm.reset();
-  updateTableField();
-  orderModal.hidden = false;
-  document.querySelector("#orderType").focus();
-}
-function closeOrderModal() {
-  orderModal.hidden = true;
-}
-function updateTableField() {
-  const isTable = orderType.value === "tables";
-  tableField.hidden = !isTable;
-  document.querySelector("#orderTable").required = isTable;
-}
-document.querySelector("#newOrder").addEventListener("click", openOrderModal);
-document.querySelector("#closeOrderModal").addEventListener("click", closeOrderModal);
-document.querySelector("#cancelOrder").addEventListener("click", closeOrderModal);
-orderModal.addEventListener("click", event => { if (event.target === orderModal) closeOrderModal(); });
-document.addEventListener("keydown", event => { if (event.key === "Escape" && !orderModal.hidden) closeOrderModal(); });
-orderType.addEventListener("change", updateTableField);
-orderForm.addEventListener("submit", event => {
-  event.preventDefault();
-  const type = orderType.value;
-  const amount = Number(document.querySelector("#orderAmount").value);
-  const customer = document.querySelector("#orderCustomer").value.trim();
-  const note = document.querySelector("#orderNote").value.trim();
-  const tableNumber = document.querySelector("#orderTable").value;
-  if (!Number.isFinite(amount) || amount <= 0) return;
-  let item;
-  const formattedAmount = amount.toLocaleString("el-GR", {style:"currency",currency:"EUR"});
-  const time = new Intl.DateTimeFormat("el-GR", {hour:"2-digit",minute:"2-digit"}).format(new Date());
-  const suffix = String(Date.now()).slice(-5);
-  if (type === "tables") {
-    if (!tableNumber) return;
-    const index = Number(tableNumber) - 1;
-    const current = savedStates[index] || boards.tables.items[index][2];
-    if (current === "busy") {
-      showToast("Το τραπέζι είναι ήδη κατειλημμένο.");
-      return;
-    }
-    savedStates[index] = "busy";
-    localStorage.setItem("panathinaikon-table-states", JSON.stringify(savedStates));
-    const label = customer ? customer : "Νέα παραγγελία";
-    boards.tables.items[index] = [`Τραπέζι ${tableNumber}`, "Κατειλημμένο", "busy", `${label} · ${time}`, formattedAmount];
-    item = {id:`TB-${tableNumber}-${suffix}`, type, item:boards.tables.items[index], note};
-  } else {
-    const prefix = type === "takeaway" ? "#TA-" : "#DL-";
-    const status = "Νέα";
-    const detail = [customer, type === "takeaway" ? `Παραλαβή · ${time}` : `Νέα παραγγελία · ${time}`].filter(Boolean).join(" · ");
-    const row = [`${prefix}${suffix}`, status, "reserved", detail, formattedAmount];
-    boards[type].items.unshift(row);
-    item = {id:row[0], type, item:row, note};
-  }
-  demoOrders.unshift(item);
-  localStorage.setItem("panathinaikon-demo-orders", JSON.stringify(demoOrders));
-  activeBoard = type;
-  document.querySelectorAll("[data-tab]").forEach(tab => {
-    const selected = tab.dataset.tab === type;
-    tab.classList.toggle("active", selected);
-    tab.setAttribute("aria-selected", String(selected));
-  });
-  closeOrderModal();
-  renderBoard();
-  showToast("Η παραγγελία καταχωρίστηκε στο demo.");
-});
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.setTimeout(() => toast.classList.remove("show"), 2600);
-}
-const now = new Date();
-document.querySelector("#today").textContent = new Intl.DateTimeFormat("el-GR", {weekday:"short",day:"numeric",month:"short",year:"numeric"}).format(now);
+function persistDelivery(){localStorage.setItem("panathinaikon-delivery",JSON.stringify(boards.delivery.items));}
+try{const d=JSON.parse(localStorage.getItem("panathinaikon-delivery")||"null");if(Array.isArray(d))boards.delivery.items=d;}catch{}
+function submitTakeaway(){const entries=Object.entries(cart).filter(([,q])=>q>0);if(!entries.length)return;const total=entries.reduce((s,[n,q])=>s+menu.find(p=>p.name===n).price*q,0);const suffix=String(Date.now()).slice(-5);const summaryText=entries.map(([n,q])=>q+"× "+n).join(", ");boards.takeaway.items.unshift(["#TA-"+suffix,"Νέα","new",summaryText,money(total)]);localStorage.setItem("panathinaikon-takeaway",JSON.stringify(boards.takeaway.items));cart={};renderTakeaway();showToast("Η παραγγελία Take Away καταχωρίστηκε.");}
+try{const t=JSON.parse(localStorage.getItem("panathinaikon-takeaway")||"null");if(Array.isArray(t))boards.takeaway.items=t;}catch{}
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>setBoardTab(b.dataset.tab)));
+document.querySelector("#filterButton").hidden=true;
+document.querySelector("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("dark");localStorage.setItem("panathinaikon-theme",document.body.classList.contains("dark")?"dark":"light");});
+if(localStorage.getItem("panathinaikon-theme")==="dark")document.body.classList.add("dark");
+document.querySelector("#closeTableModal").addEventListener("click",closeTable);
+tableModal.addEventListener("click",e=>{if(e.target===tableModal)closeTable();});
+document.querySelector("#tableStartOrder").addEventListener("click",()=>{closeTable();setBoardTab("takeaway");showToast("Επίλεξε είδη για την παραγγελία τραπεζιού (demo).");});
+function showReceipt(){receiptModal.hidden=false;}
+document.querySelector("#tableReceipt").addEventListener("click",showReceipt);
+document.querySelector("#closeReceiptModal").addEventListener("click",()=>receiptModal.hidden=true);
+document.querySelector("#receiptOk").addEventListener("click",()=>receiptModal.hidden=true);
+document.querySelector("#tableDiscount").addEventListener("click",()=>{const raw=prompt("Ποσοστό έκπτωσης (1–100):","10");if(raw===null)return;const pct=Number(raw);if(!Number.isFinite(pct)||pct<=0||pct>100){showToast("Μη έγκυρο ποσοστό έκπτωσης.");return;}tableDiscounts[selectedTable]=pct;localStorage.setItem("panathinaikon-table-discounts",JSON.stringify(tableDiscounts));document.querySelector("#tableManagementNote").textContent="Εφαρμόστηκε έκπτωση "+pct+"% (demo).";});
+document.querySelector("#tableClose").addEventListener("click",()=>{savedStates[selectedTable]="free";const row=boards.tables.items[selectedTable];boards.tables.items[selectedTable]=[row[0],"Ελεύθερο","free",row[3],"—"];saveTables();closeTable();renderTables();showToast("Το τραπέζι αποδεσμεύτηκε.");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeTable();receiptModal.hidden=true;}});
+function showToast(message){toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),2600);}
+document.querySelector("#today").textContent=new Intl.DateTimeFormat("el-GR",{weekday:"short",day:"numeric",month:"short",year:"numeric"}).format(new Date());
 renderBoard();
