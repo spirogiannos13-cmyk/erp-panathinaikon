@@ -44,26 +44,34 @@
         <div class="top-actions"><span class="today" id="today"></span><button class="icon-button" aria-label="Ειδοποιήσεις">♧<i></i></button><button class="theme-toggle" id="themeToggle" aria-label="Εναλλαγή θέματος">◐ <span>Εμφάνιση</span></button></div>
       </header>
 
-      <section class="page-heading">
-        <div><div class="eyebrow">ΤΡΙΤΗ, 10 ΝΟΕΜΒΡΙΟΥ 2026</div><h1>Καλησπέρα, Σπύρο <span>✳</span></h1><p>Μια γρήγορη ματιά στη σημερινή λειτουργία του καταστήματος.</p></div>
+      <section class="dashboard-view" id="dashboardView" hidden>
+              <section class="page-heading">
+        <div><div class="eyebrow">ΤΡΙΤΗ, 10 ΝΟΕΜΒΡΙΟΥ 2026</div><h1>Επισκόπηση ημέρας <span>✳</span></h1><p>Μια γρήγορη ματιά στη σημερινή λειτουργία του καταστήματος.</p></div>
         
       </section>
 
-      <section class="stats-grid" aria-label="Στατιστικά ημέρας">
+
+              <section class="stats-grid" aria-label="Στατιστικά ημέρας">
         <article class="stat-card"><div class="stat-top"><span>ΣΥΝΟΛΙΚΕΣ ΠΩΛΗΣΕΙΣ</span><span class="stat-icon green">€</span></div><div class="stat-value">€2.840,50</div><div class="stat-foot"><span class="trend">↗ 12,8%</span> σε σχέση με χθες</div></article>
         <article class="stat-card"><div class="stat-top"><span>ΠΑΡΑΓΓΕΛΙΕΣ</span><span class="stat-icon mint">≋</span></div><div class="stat-value">86</div><div class="stat-foot"><span class="trend">↗ 8,2%</span> σε σχέση με χθες</div></article>
         <article class="stat-card"><div class="stat-top"><span>ΜΕΣΗ ΑΠΟΔΕΙΞΗ</span><span class="stat-icon sand">◷</span></div><div class="stat-value">€33,03</div><div class="stat-foot neutral">Από 86 παραγγελίες</div></article>
         <article class="stat-card"><div class="stat-top"><span>ΕΝΕΡΓΑ ΤΡΑΠΕΖΙΑ</span><span class="stat-icon blue">▤</span></div><div class="stat-value">12 <small>/ 20</small></div><div class="stat-foot"><span class="occupancy">60% πληρότητα</span> αυτή τη στιγμή</div></article>
       </section>
 
+
+      </section>
+      <section class="page-heading compact-heading" id="ordersHeading">
+        <div><div class="eyebrow">ΛΕΙΤΟΥΡΓΙΑ ΚΑΤΑΣΤΗΜΑΤΟΣ</div><h1>Παραγγελιοληψία</h1><p>Επίλεξε ροή για να ξεκινήσεις.</p></div>
+      </section>
       <section class="operations-section">
         <div class="section-heading"><div><div class="eyebrow">LIVE ΛΕΙΤΟΥΡΓΙΑ</div><h2>Κέντρο παραγγελιών</h2><p>Παρακολούθησε όλες τις ροές από ένα σημείο.</p></div><span class="live-label"><span class="live-dot"></span> LIVE ΕΝΗΜΕΡΩΣΗ</span></div>
         <div class="view-tabs" role="tablist" aria-label="Ροές παραγγελιών">
+          <button class="view-tab" role="tab" aria-selected="false" data-tab="dashboard"><span>▦</span> Επισκόπηση</button>
           <button class="view-tab active" role="tab" aria-selected="true" data-tab="tables"><span>▤</span> Τραπέζια <b>12</b></button>
           <button class="view-tab" role="tab" aria-selected="false" data-tab="takeaway"><span>◫</span> Take Away <b>4</b></button>
           <button class="view-tab" role="tab" aria-selected="false" data-tab="delivery"><span>⌁</span> Delivery <b>7</b></button>
         </div>
-        <div class="board-toolbar"><div><h3 id="boardTitle">Πλάνο τραπεζιών</h3><p id="boardDescription">Κατάσταση τραπεζιών σε πραγματικό χρόνο</p></div><div class="board-tools"><div class="legend"><span><i class="legend-free"></i> Ελεύθερο</span><span><i class="legend-busy"></i> Κατειλημμένο</span><span><i class="legend-reserved"></i> Κράτηση</span></div><button class="filter-button" id="filterButton">☷ <span>Όλα</span></button></div></div>
+        <div class="board-toolbar" id="boardToolbar"><div><h3 id="boardTitle">Πλάνο τραπεζιών</h3><p id="boardDescription">Κατάσταση τραπεζιών σε πραγματικό χρόνο</p></div><div class="board-tools"><div class="legend"><span><i class="legend-free"></i> Ελεύθερο</span><span><i class="legend-busy"></i> Κατειλημμένο</span><span><i class="legend-reserved"></i> Κράτηση</span></div><button class="filter-button" id="filterButton">☷ <span>Όλα</span></button></div></div>
         <div class="floorplan-summary" id="floorplanSummary" hidden></div><div class="order-grid" id="orderGrid" aria-live="polite"></div><div class="table-help" id="tableHelp" hidden>Επίλεξε ένα τραπέζι για να αλλάξεις την κατάστασή του. Οι αλλαγές αποθηκεύονται μόνο σε αυτόν τον browser (demo).</div>
       </section>
       <footer class="footer"><span>© 2026 PANATHINAIKON ERP</span><span>Έκδοση 0.1.0 · Demo περιβάλλον</span></footer>
