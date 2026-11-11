@@ -7,7 +7,9 @@ const boards = {
     ["#DL-2088","Νέα","new","Νέα παραγγελία · 19:24","€31,50"],["#DL-2087","Σε προετοιμασία","preparing","Κουζίνα · 19:18","€22,00"],["#DL-2086","Σε διανομή","dispatched","Διανομέας: Νίκος","€27,50"],["#DL-2085","Έτοιμη","ready","Αναμονή διανομέα","€19,00"],["#DL-2084","Σε προετοιμασία","preparing","Κουζίνα · 19:10","€42,00"],["#DL-2083","Παραδόθηκε","completed","Παράδοση · 19:02","€16,50"],["#DL-2082","Σε διανομή","dispatched","Διανομέας: Γιώργος","€35,00"]
   ]}
 };
-const defaultMenu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];\nlet menu=defaultMenu.map(item=>({...item}));\ntry{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
+const defaultMenu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];
+let menu=defaultMenu.map(item=>({...item}));
+try{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
 let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",tableDiscounts={},tableOrderContext=null;
@@ -60,8 +62,10 @@ function addOrEditItem(index=null){
 document.querySelector("#addItemButton").addEventListener("click",()=>addOrEditItem());
 document.querySelector("#itemsSearch").addEventListener("input",event=>{itemsSearch=event.target.value;renderItems();const input=document.querySelector("#itemsSearch");input.focus();input.setSelectionRange(itemsSearch.length,itemsSearch.length);});
 document.querySelector("#itemsTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-edit-item]");if(edit){addOrEditItem(Number(edit.dataset.editItem));return;}const del=event.target.closest("[data-delete-item]");if(del){const index=Number(del.dataset.deleteItem);if(!confirm("Να διαγραφεί το είδος "+menu[index].name+";"))return;menu.splice(index,1);saveMenu();renderItems();showToast("Το είδος διαγράφηκε.");}});
-\nfunction renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items";\n document.querySelector("#itemsManagement").hidden=!itemsView;
+
+function renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items";
+ document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView;
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView;
@@ -89,7 +93,8 @@ function persistDelivery(){localStorage.setItem("panathinaikon-delivery",JSON.st
 try{const d=JSON.parse(localStorage.getItem("panathinaikon-delivery")||"null");if(Array.isArray(d))boards.delivery.items=d;}catch{}
 function submitTakeaway(){const entries=Object.entries(cart).filter(([,q])=>q>0);if(!entries.length)return;const total=entries.reduce((s,[n,q])=>s+menu.find(p=>p.name===n).price*q,0);const suffix=String(Date.now()).slice(-5);const summaryText=(orderCustomer?orderCustomer+" · ":"")+entries.map(([n,q])=>q+"× "+n).join(", ")+(orderNote?" · "+orderNote:"");if(tableOrderContext!==null){const index=tableOrderContext;const row=boards.tables.items[index];const existing=Number(String(row[4]).replace(/[^0-9,.-]/g,"").replace(".","").replace(",", "."))||0;boards.tables.items[index]=[row[0],"Κατειλημμένο","busy",summaryText,money(existing+total)];savedStates[index]="busy";saveTables();tableOrderContext=null;setBoardTab("tables");showToast("Τα είδη προστέθηκαν στο τραπέζι.");}else{boards.takeaway.items.unshift(["#TA-"+suffix,"Νέα","new",(orderCustomer?orderCustomer+" · ":"")+summaryText,money(total)]);localStorage.setItem("panathinaikon-takeaway",JSON.stringify(boards.takeaway.items));renderTakeaway();showToast("Η παραγγελία Take Away καταχωρίστηκε.");}cart={};}
 try{const t=JSON.parse(localStorage.getItem("panathinaikon-takeaway")||"null");if(Array.isArray(t))boards.takeaway.items=t;}catch{}
-document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-view]").forEach(item=>item.classList.remove("active"));setBoardTab(b.dataset.tab);}));\ndocument.querySelectorAll("[data-view]").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();activeBoard=link.dataset.view;document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===link));document.querySelectorAll("[data-tab]").forEach(tab=>{tab.classList.remove("active");tab.setAttribute("aria-selected","false");});renderBoard();}));
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-view]").forEach(item=>item.classList.remove("active"));setBoardTab(b.dataset.tab);}));
+document.querySelectorAll("[data-view]").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();activeBoard=link.dataset.view;document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===link));document.querySelectorAll("[data-tab]").forEach(tab=>{tab.classList.remove("active");tab.setAttribute("aria-selected","false");});renderBoard();}));
 document.querySelector("#filterButton").hidden=true;
 document.querySelector("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("dark");localStorage.setItem("panathinaikon-theme",document.body.classList.contains("dark")?"dark":"light");});
 if(localStorage.getItem("panathinaikon-theme")==="dark")document.body.classList.add("dark");
