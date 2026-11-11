@@ -12,7 +12,7 @@ let menu=defaultMenu.map(item=>({...item}));
 try{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
-let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",stockSearch="",tableDiscounts={},tableOrderContext=null;
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",stockSearch="",recipeSearch="",tableDiscounts={},tableOrderContext=null;
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
@@ -110,16 +110,58 @@ document.querySelector("#addStockItem").addEventListener("click",createStockItem
 document.querySelector("#stockSearch").addEventListener("input",event=>{stockSearch=event.target.value;renderInventory();});
 document.querySelector("#stockTableBody").addEventListener("click",event=>{const move=event.target.closest("[data-stock-move]");if(move){moveStock(Number(move.dataset.stockMove));return;}const edit=event.target.closest("[data-stock-edit]");if(edit)editStockItem(Number(edit.dataset.stockEdit));});
 
-function renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory";
+let recipes=[];
+try{const savedRecipes=JSON.parse(localStorage.getItem("panathinaikon-recipes")||"[]");if(Array.isArray(savedRecipes))recipes=savedRecipes;}catch{}
+function saveRecipes(){localStorage.setItem("panathinaikon-recipes",JSON.stringify(recipes));}
+function recipeCost(recipe){return recipe.ingredients.reduce((sum,line)=>{const stock=stockItems.find(item=>item.name===line.stockName);return sum+(stock?stock.quantity*0+line.quantity*(stock.unit===line.unit?1:0)*line.unitCost:line.quantity*line.unitCost);},0);}
+function renderRecipes(){
+ const query=recipeSearch.trim().toLocaleLowerCase("el");
+ const rows=recipes.map((recipe,index)=>({...recipe,index})).filter(recipe=>recipe.itemName.toLocaleLowerCase("el").includes(query));
+ const totalCost=recipes.reduce((sum,recipe)=>sum+recipeCost(recipe),0);
+ document.querySelector("#recipeKpis").innerHTML=`<div class="recipe-kpi"><span>ΣΥΝΤΑΓΕΣ</span><b>${recipes.length}</b></div><div class="recipe-kpi"><span>ΣΥΝΟΛΙΚΟ ΚΟΣΤΟΣ ΜΕΡΙΔΑΣ</span><b>${money(totalCost)}</b></div><div class="recipe-kpi"><span>ΥΛΙΚΑ ΑΠΟΘΗΚΗΣ</span><b>${stockItems.length}</b></div>`;
+ document.querySelector("#recipeCount").textContent=recipes.length+" συνταγές";
+ document.querySelector("#recipeTableBody").innerHTML=rows.map(recipe=>{const cost=recipeCost(recipe),price=Number(recipe.salePrice)||0,margin=price-cost,percent=price>0?margin/price*100:0;return `<tr><td><strong>${recipe.itemName}</strong></td><td>${recipe.ingredients.length} υλικά</td><td>${money(cost)}</td><td>${money(price)}</td><td><span class="recipe-margin ${margin>=0?"positive":"negative"}">${money(margin)} · ${percent.toFixed(1)}%</span></td><td><button class="item-edit-button" data-recipe-edit="${recipe.index}">Επεξεργασία</button><button class="item-delete-button" data-recipe-delete="${recipe.index}">Διαγραφή</button></td></tr>`;}).join("")||'<tr><td colspan="6" class="items-empty">Δεν υπάρχουν συνταγές. Δημιούργησε την πρώτη.</td></tr>';
+}
+function createRecipe(index=null){
+ if(!stockItems.length){showToast("Πρόσθεσε πρώτα υλικά στην Αποθήκη.");return;}
+ const existing=index===null?null:recipes[index];
+ const itemName=prompt("Είδος πώλησης (όπως εμφανίζεται στα Είδη & Τιμές):",existing?.itemName||menu[0]?.name||"");if(itemName===null)return;
+ const menuItem=menu.find(item=>item.name.toLocaleLowerCase("el")===itemName.trim().toLocaleLowerCase("el"));
+ if(!menuItem){showToast("Το είδος πρέπει να υπάρχει πρώτα στα Είδη & Τιμές.");return;}
+ const saleRaw=prompt("Τιμή πώλησης (€):",String(existing?.salePrice??menuItem.price).replace(".",","));if(saleRaw===null)return;
+ const salePrice=Number(saleRaw.replace(",", "."));if(!Number.isFinite(salePrice)||salePrice<0){showToast("Μη έγκυρη τιμή πώλησης.");return;}
+ const count=Number(prompt("Πόσα διαφορετικά υλικά έχει η συνταγή;",String(existing?.ingredients.length||1)));if(!Number.isInteger(count)||count<1||count>30){showToast("Μη έγκυρος αριθμός υλικών.");return;}
+ const ingredients=[];
+ for(let i=0;i<count;i++){
+  const old=existing?.ingredients[i];
+  const names=stockItems.map((item,n)=>n+": "+item.name+" ("+item.unit+")").join("\n");
+  const chosen=prompt("Υλικό "+(i+1)+" — γράψε τον αριθμό του υλικού:\n"+names,String(old?stockItems.findIndex(x=>x.name===old.stockName):0));if(chosen===null)return;
+  const stock=stockItems[Number(chosen)];if(!stock){showToast("Μη έγκυρο υλικό.");return;}
+  const qtyRaw=prompt("Ποσότητα "+stock.unit+" για μία μερίδα:",String(old?.quantity??1));if(qtyRaw===null)return;
+  const quantity=Number(qtyRaw.replace(",", "."));if(!Number.isFinite(quantity)||quantity<=0){showToast("Μη έγκυρη ποσότητα.");return;}
+  const unitCost=stock.unitCost??0;
+  const costRaw=prompt("Κόστος ανά "+stock.unit+" (€):",String(unitCost).replace(".",","));if(costRaw===null)return;
+  const cost=Number(costRaw.replace(",", "."));if(!Number.isFinite(cost)||cost<0){showToast("Μη έγκυρο κόστος υλικού.");return;}
+  stock.unitCost=cost;
+  ingredients.push({stockName:stock.name,quantity,unit:stock.unit,unitCost:cost});
+ }
+ const recipe={itemName:itemName.trim(),salePrice,ingredients};
+ if(index===null)recipes.push(recipe);else recipes[index]=recipe;
+ saveStock();saveRecipes();renderRecipes();showToast("Η συνταγή αποθηκεύτηκε.");
+}
+document.querySelector("#addRecipeButton").addEventListener("click",()=>createRecipe());
+document.querySelector("#recipeSearch").addEventListener("input",event=>{recipeSearch=event.target.value;renderRecipes();});
+document.querySelector("#recipeTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-recipe-edit]");if(edit){createRecipe(Number(edit.dataset.recipeEdit));return;}const del=event.target.closest("[data-recipe-delete]");if(del){const i=Number(del.dataset.recipeDelete);if(confirm("Να διαγραφεί η συνταγή για "+recipes[i].itemName+";")){recipes.splice(i,1);saveRecipes();renderRecipes();}}});
+\nfunction renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes";\n document.querySelector("#recipesManagement").hidden=!recipesView;
  document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
- document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView;
- grid.hidden=dashboard||itemsView||inventoryView;summary.hidden=dashboard||itemsView||inventoryView;help.hidden=dashboard||itemsView||inventoryView;
- if(dashboard||itemsView||inventoryView){if(itemsView)renderItems();if(inventoryView)renderInventory();return;}
+ document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView;
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView;
+ grid.hidden=dashboard||itemsView||inventoryView||recipesView;summary.hidden=dashboard||itemsView||inventoryView||recipesView;help.hidden=dashboard||itemsView||inventoryView||recipesView;
+ if(dashboard||itemsView||inventoryView||recipesView){if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
