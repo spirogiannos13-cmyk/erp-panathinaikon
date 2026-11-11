@@ -7,10 +7,10 @@ const boards = {
     ["#DL-2088","Νέα","new","Νέα παραγγελία · 19:24","€31,50"],["#DL-2087","Σε προετοιμασία","preparing","Κουζίνα · 19:18","€22,00"],["#DL-2086","Σε διανομή","dispatched","Διανομέας: Νίκος","€27,50"],["#DL-2085","Έτοιμη","ready","Αναμονή διανομέα","€19,00"],["#DL-2084","Σε προετοιμασία","preparing","Κουζίνα · 19:10","€42,00"],["#DL-2083","Παραδόθηκε","completed","Παράδοση · 19:02","€16,50"],["#DL-2082","Σε διανομή","dispatched","Διανομέας: Γιώργος","€35,00"]
   ]}
 };
-const menu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];
+const defaultMenu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];\nlet menu=defaultMenu.map(item=>({...item}));\ntry{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
-let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",tableDiscounts={},tableOrderContext=null;
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",tableDiscounts={},tableOrderContext=null;
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
@@ -37,12 +37,35 @@ function renderDelivery(){
  const stages=deliveryStages;
  grid.innerHTML=`<div class="delivery-summary">${stages.map(s=>`<div class="delivery-stage-count"><span>${s.label}</span><b>${boards.delivery.items.filter(o=>o[2]===s.key).length}</b></div>`).join("")}</div><div class="delivery-orders">${boards.delivery.items.map((o,i)=>{const stage=stages.find(s=>s.key===o[2])||stages[0];const receipt=o.receipt?"Απόδειξη εκδόθηκε":"Απόδειξη εκκρεμεί";return `<article class="delivery-card"><div class="delivery-card-top"><strong>${o[0]}</strong><span class="delivery-status ${o[2]}">${stage.label}</span></div><p>${o[3]}</p><div class="delivery-card-meta"><b>${o[4]}</b><span class="${o.receipt?"receipt-done":"receipt-pending"}">▤ ${receipt}</span></div><div class="delivery-card-actions">${o[2]==="ready"&&!o.receipt?`<button class="secondary-button" data-receipt="${i}">Έκδοση απόδειξης</button>`:""}${stage.next?`<button class="primary-button" data-delivery-next="${i}" ${o[2]==="ready"&&!o.receipt?"disabled":""}>${o[2]==="ready"?"Αναχώρηση διανομέα":stage.action}</button>`:'<span class="completed-label">✓ Ολοκληρώθηκε</span>'}</div></article>`}).join("")}</div>`;
 }
-function renderBoard(){
- const dashboard=activeBoard==="dashboard";
+function saveMenu(){localStorage.setItem("panathinaikon-menu",JSON.stringify(menu));}
+function renderItems(){
+ const query=itemsSearch.trim().toLocaleLowerCase("el");
+ const filtered=menu.map((item,index)=>({...item,index})).filter(item=>(item.name+" "+item.category).toLocaleLowerCase("el").includes(query));
+ document.querySelector("#itemsCount").textContent=menu.length+" είδη";
+ document.querySelector("#itemsTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td>${money(item.price)}</td><td><button class="item-edit-button" data-edit-item="${item.index}">Επεξεργασία</button><button class="item-delete-button" data-delete-item="${item.index}">Διαγραφή</button></td></tr>`).join("")||'<tr><td colspan="4" class="items-empty">Δεν βρέθηκαν είδη.</td></tr>';
+}
+function addOrEditItem(index=null){
+ const current=index===null?{name:"",category:"Καφέδες",price:""}:menu[index];
+ const name=prompt("Ονομασία είδους:",current.name);if(name===null)return;
+ const cleanName=name.trim();if(!cleanName){showToast("Συμπλήρωσε ονομασία είδους.");return;}
+ const category=prompt("Κατηγορία:",current.category);if(category===null)return;
+ const cleanCategory=category.trim();if(!cleanCategory){showToast("Συμπλήρωσε κατηγορία.");return;}
+ const raw=prompt("Τιμή (€):",String(current.price).replace(".",","));if(raw===null)return;
+ const price=Number(raw.replace(",", "."));if(!Number.isFinite(price)||price<0){showToast("Μη έγκυρη τιμή.");return;}
+ const duplicate=menu.some((item,i)=>i!==index&&item.name.toLocaleLowerCase("el")===cleanName.toLocaleLowerCase("el"));
+ if(duplicate){showToast("Υπάρχει ήδη είδος με αυτή την ονομασία.");return;}
+ if(index===null)menu.push({name:cleanName,category:cleanCategory,price});else menu[index]={name:cleanName,category:cleanCategory,price};
+ saveMenu();renderItems();if(activeBoard==="takeaway")renderTakeaway();showToast(index===null?"Το είδος προστέθηκε.":"Το είδος ενημερώθηκε.");
+}
+document.querySelector("#addItemButton").addEventListener("click",()=>addOrEditItem());
+document.querySelector("#itemsSearch").addEventListener("input",event=>{itemsSearch=event.target.value;renderItems();const input=document.querySelector("#itemsSearch");input.focus();input.setSelectionRange(itemsSearch.length,itemsSearch.length);});
+document.querySelector("#itemsTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-edit-item]");if(edit){addOrEditItem(Number(edit.dataset.editItem));return;}const del=event.target.closest("[data-delete-item]");if(del){const index=Number(del.dataset.deleteItem);if(!confirm("Να διαγραφεί το είδος "+menu[index].name+";"))return;menu.splice(index,1);saveMenu();renderItems();showToast("Το είδος διαγράφηκε.");}});
+\nfunction renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items";\n document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
- document.querySelector("#ordersHeading").hidden=dashboard;
- document.querySelector("#boardToolbar").hidden=dashboard;
- document.querySelector(".section-heading").hidden=dashboard;
+ document.querySelector("#ordersHeading").hidden=dashboard||itemsView;
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView;
  grid.hidden=dashboard;summary.hidden=dashboard;help.hidden=dashboard;
  if(dashboard)return;
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
@@ -66,7 +89,7 @@ function persistDelivery(){localStorage.setItem("panathinaikon-delivery",JSON.st
 try{const d=JSON.parse(localStorage.getItem("panathinaikon-delivery")||"null");if(Array.isArray(d))boards.delivery.items=d;}catch{}
 function submitTakeaway(){const entries=Object.entries(cart).filter(([,q])=>q>0);if(!entries.length)return;const total=entries.reduce((s,[n,q])=>s+menu.find(p=>p.name===n).price*q,0);const suffix=String(Date.now()).slice(-5);const summaryText=(orderCustomer?orderCustomer+" · ":"")+entries.map(([n,q])=>q+"× "+n).join(", ")+(orderNote?" · "+orderNote:"");if(tableOrderContext!==null){const index=tableOrderContext;const row=boards.tables.items[index];const existing=Number(String(row[4]).replace(/[^0-9,.-]/g,"").replace(".","").replace(",", "."))||0;boards.tables.items[index]=[row[0],"Κατειλημμένο","busy",summaryText,money(existing+total)];savedStates[index]="busy";saveTables();tableOrderContext=null;setBoardTab("tables");showToast("Τα είδη προστέθηκαν στο τραπέζι.");}else{boards.takeaway.items.unshift(["#TA-"+suffix,"Νέα","new",(orderCustomer?orderCustomer+" · ":"")+summaryText,money(total)]);localStorage.setItem("panathinaikon-takeaway",JSON.stringify(boards.takeaway.items));renderTakeaway();showToast("Η παραγγελία Take Away καταχωρίστηκε.");}cart={};}
 try{const t=JSON.parse(localStorage.getItem("panathinaikon-takeaway")||"null");if(Array.isArray(t))boards.takeaway.items=t;}catch{}
-document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>setBoardTab(b.dataset.tab)));
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-view]").forEach(item=>item.classList.remove("active"));setBoardTab(b.dataset.tab);}));\ndocument.querySelectorAll("[data-view]").forEach(link=>link.addEventListener("click",event=>{event.preventDefault();activeBoard=link.dataset.view;document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===link));document.querySelectorAll("[data-tab]").forEach(tab=>{tab.classList.remove("active");tab.setAttribute("aria-selected","false");});renderBoard();}));
 document.querySelector("#filterButton").hidden=true;
 document.querySelector("#themeToggle").addEventListener("click",()=>{document.body.classList.toggle("dark");localStorage.setItem("panathinaikon-theme",document.body.classList.contains("dark")?"dark":"light");});
 if(localStorage.getItem("panathinaikon-theme")==="dark")document.body.classList.add("dark");
