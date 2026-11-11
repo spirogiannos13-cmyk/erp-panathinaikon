@@ -93,3 +93,22 @@ body.dark .table-action.primary-action,body.dark .category-tab.active{background
 .cart-details input:focus,.cart-details textarea:focus{outline:2px solid #69a47d55;border-color:#69a47d}
 .product-empty{grid-column:1/-1;padding:32px;text-align:center;color:#89968d;font-size:11px}
 body.dark .cart-details label{color:#c2cec5}
+
+.items-management{margin:24px 0 36px}
+.items-management[hidden]{display:none!important}
+.items-page-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:20px}
+.items-page-heading h2{font:700 22px Manrope,sans-serif;color:#253a2d;margin:6px 0}
+.items-page-heading p{font-size:10px;color:#87938b;margin:0}
+.items-page-heading .primary-button{cursor:pointer}
+.items-toolbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0;color:#87938b;font-size:10px}
+.items-toolbar input{width:min(100%,340px);height:38px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:inherit;padding:0 11px;font:400 11px "DM Sans",sans-serif}
+.items-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:11px;background:var(--panel)}
+.items-table{width:100%;border-collapse:collapse;text-align:left;min-width:570px}
+.items-table th{font-size:9px;letter-spacing:.05em;color:#87938b;font-weight:700;background:var(--canvas);padding:13px 16px}
+.items-table td{padding:13px 16px;border-top:1px solid var(--line);font-size:11px;color:#66756b}
+.items-table td strong{color:#2c4033}
+.item-edit-button,.item-delete-button{border:1px solid var(--line);background:transparent;border-radius:6px;padding:6px 9px;font-size:9px;color:#4d775b;cursor:pointer;margin-right:6px}
+.item-delete-button{color:#ad6262}
+.items-empty{text-align:center;color:#89968d!important;padding:28px!important}
+body.dark .items-page-heading h2,body.dark .items-table td strong{color:#e7eee8}
+@media(max-width:600px){.items-page-heading{align-items:flex-start;flex-direction:column}.items-page-heading .primary-button{width:100%}.items-toolbar input{width:100%}}
