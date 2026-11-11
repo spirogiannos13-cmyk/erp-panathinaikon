@@ -12,7 +12,7 @@ let menu=defaultMenu.map(item=>({...item}));
 try{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
-let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",tableDiscounts={},tableOrderContext=null;
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderNote="",itemsSearch="",stockSearch="",tableDiscounts={},tableOrderContext=null;
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
@@ -63,15 +63,63 @@ document.querySelector("#addItemButton").addEventListener("click",()=>addOrEditI
 document.querySelector("#itemsSearch").addEventListener("input",event=>{itemsSearch=event.target.value;renderItems();const input=document.querySelector("#itemsSearch");input.focus();input.setSelectionRange(itemsSearch.length,itemsSearch.length);});
 document.querySelector("#itemsTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-edit-item]");if(edit){addOrEditItem(Number(edit.dataset.editItem));return;}const del=event.target.closest("[data-delete-item]");if(del){const index=Number(del.dataset.deleteItem);if(!confirm("Να διαγραφεί το είδος "+menu[index].name+";"))return;menu.splice(index,1);saveMenu();renderItems();showToast("Το είδος διαγράφηκε.");}});
 
+const defaultStock=[
+ {name:"Καφές Espresso",category:"Καφέδες",unit:"kg",quantity:8,min:3},
+ {name:"Γάλα πλήρες",category:"Γαλακτοκομικά",unit:"lt",quantity:14,min:5},
+ {name:"Κόκκοι κακάο",category:"Ροφήματα",unit:"kg",quantity:2,min:2},
+ {name:"Ψωμί burger",category:"Αρτοποιία",unit:"τεμ.",quantity:36,min:12},
+ {name:"Πατάτες",category:"Τρόφιμα",unit:"kg",quantity:18,min:5},
+ {name:"Coca Cola",category:"Αναψυκτικά",unit:"τεμ.",quantity:48,min:12}
+];
+let stockItems=defaultStock.map(x=>({...x}));
+try{const saved=JSON.parse(localStorage.getItem("panathinaikon-stock")||"null");if(Array.isArray(saved))stockItems=saved;}catch{}
+function saveStock(){localStorage.setItem("panathinaikon-stock",JSON.stringify(stockItems));}
+function renderInventory(){
+ const query=stockSearch.trim().toLocaleLowerCase("el");
+ const filtered=stockItems.map((item,index)=>({...item,index})).filter(item=>(item.name+" "+item.category).toLocaleLowerCase("el").includes(query));
+ const low=stockItems.filter(x=>x.quantity<=x.min).length;
+ document.querySelector("#inventoryKpis").innerHTML=`<div class="inventory-kpi"><span>ΥΛΙΚΑ</span><b>${stockItems.length}</b></div><div class="inventory-kpi"><span>ΧΑΜΗΛΟ ΑΠΟΘΕΜΑ</span><b>${low}</b></div><div class="inventory-kpi"><span>ΣΥΝΟΛΙΚΕΣ ΜΟΝΑΔΕΣ</span><b>${stockItems.reduce((s,x)=>s+x.quantity,0).toLocaleString("el-GR")}</b></div>`;
+ document.querySelector("#stockCount").textContent=stockItems.length+" υλικά";
+ document.querySelector("#stockTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td><b>${item.quantity} ${item.unit}</b></td><td>${item.min} ${item.unit}</td><td><span class="stock-state ${item.quantity<=item.min?"low":"ok"}">${item.quantity<=item.min?"Χαμηλό":"Επαρκές"}</span></td><td><button class="item-edit-button" data-stock-move="${item.index}">＋ / − Κίνηση</button><button class="item-delete-button" data-stock-edit="${item.index}">Επεξεργασία</button></td></tr>`).join("")||'<tr><td colspan="6" class="items-empty">Δεν βρέθηκαν υλικά.</td></tr>';
+}
+function createStockItem(){
+ const name=prompt("Ονομασία υλικού:");if(name===null)return;
+ const clean=name.trim();if(!clean)return;
+ const category=prompt("Κατηγορία υλικού:","Τρόφιμα");if(category===null)return;
+ const unit=prompt("Μονάδα μέτρησης (kg, lt, τεμ.):","kg");if(unit===null)return;
+ const quantity=Number(prompt("Αρχική ποσότητα:","0"));if(!Number.isFinite(quantity)||quantity<0){showToast("Μη έγκυρη ποσότητα.");return;}
+ const min=Number(prompt("Όριο ασφαλείας:","0"));if(!Number.isFinite(min)||min<0){showToast("Μη έγκυρο όριο.");return;}
+ stockItems.push({name:clean,category:category.trim(),unit:unit.trim()||"τεμ.",quantity,min});saveStock();renderInventory();showToast("Το υλικό προστέθηκε.");
+}
+function editStockItem(index){
+ const item=stockItems[index];if(!item)return;
+ const name=prompt("Ονομασία υλικού:",item.name);if(name===null)return;
+ const category=prompt("Κατηγορία:",item.category);if(category===null)return;
+ const unit=prompt("Μονάδα μέτρησης:",item.unit);if(unit===null)return;
+ const min=Number(prompt("Όριο ασφαλείας:",String(item.min)));if(!Number.isFinite(min)||min<0){showToast("Μη έγκυρο όριο.");return;}
+ stockItems[index]={...item,name:name.trim()||item.name,category:category.trim()||item.category,unit:unit.trim()||item.unit,min};saveStock();renderInventory();showToast("Τα στοιχεία ενημερώθηκαν.");
+}
+function moveStock(index){
+ const item=stockItems[index];if(!item)return;
+ const raw=prompt("Ποσότητα κίνησης για "+item.name+" (θετικό για εισαγωγή, αρνητικό για ανάλωση):","1");if(raw===null)return;
+ const delta=Number(raw.replace(",", "."));if(!Number.isFinite(delta)||delta===0){showToast("Μη έγκυρη ποσότητα κίνησης.");return;}
+ if(item.quantity+delta<0){showToast("Δεν υπάρχει επαρκές απόθεμα.");return;}
+ item.quantity=Number((item.quantity+delta).toFixed(3));saveStock();renderInventory();showToast(delta>0?"Καταχωρίστηκε εισαγωγή αποθέματος.":"Καταχωρίστηκε ανάλωση αποθέματος.");
+}
+document.querySelector("#addStockItem").addEventListener("click",createStockItem);
+document.querySelector("#stockSearch").addEventListener("input",event=>{stockSearch=event.target.value;renderInventory();});
+document.querySelector("#stockTableBody").addEventListener("click",event=>{const move=event.target.closest("[data-stock-move]");if(move){moveStock(Number(move.dataset.stockMove));return;}const edit=event.target.closest("[data-stock-edit]");if(edit)editStockItem(Number(edit.dataset.stockEdit));});
+
 function renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items";
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory";
+ document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
- document.querySelector("#ordersHeading").hidden=dashboard||itemsView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView;
- grid.hidden=dashboard||itemsView;summary.hidden=dashboard||itemsView;help.hidden=dashboard||itemsView;
- if(dashboard||itemsView){if(itemsView)renderItems();return;}
+ document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView;
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView;
+ grid.hidden=dashboard||itemsView||inventoryView;summary.hidden=dashboard||itemsView||inventoryView;help.hidden=dashboard||itemsView||inventoryView;
+ if(dashboard||itemsView||inventoryView){if(itemsView)renderItems();if(inventoryView)renderInventory();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}

@@ -112,3 +112,12 @@ body.dark .cart-details label{color:#c2cec5}
 .items-empty{text-align:center;color:#89968d!important;padding:28px!important}
 body.dark .items-page-heading h2,body.dark .items-table td strong{color:#e7eee8}
 @media(max-width:600px){.items-page-heading{align-items:flex-start;flex-direction:column}.items-page-heading .primary-button{width:100%}.items-toolbar input{width:100%}}
+
+.inventory-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:18px 0}
+.inventory-kpi{display:grid;gap:8px;padding:15px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.inventory-kpi span{font-size:9px;letter-spacing:.05em;color:#87938b;font-weight:700}
+.inventory-kpi b{font:700 20px Manrope,sans-serif;color:#2b4033}
+.stock-state{display:inline-flex;padding:5px 8px;border-radius:20px;font-size:9px;font-weight:700}
+.stock-state.ok{background:#eaf4ed;color:#47845a}.stock-state.low{background:#fbefea;color:#b36a4e}
+body.dark .inventory-kpi b{color:#e7eee8}
+@media(max-width:650px){.inventory-kpis{grid-template-columns:1fr}.items-table{min-width:750px}}
