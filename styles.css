@@ -121,3 +121,10 @@ body.dark .items-page-heading h2,body.dark .items-table td strong{color:#e7eee8}
 .stock-state.ok{background:#eaf4ed;color:#47845a}.stock-state.low{background:#fbefea;color:#b36a4e}
 body.dark .inventory-kpi b{color:#e7eee8}
 @media(max-width:650px){.inventory-kpis{grid-template-columns:1fr}.items-table{min-width:750px}}
+
+.recipe-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:18px 0}
+.recipe-kpi{display:grid;gap:8px;padding:15px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.recipe-kpi span{font-size:9px;letter-spacing:.05em;color:#87938b;font-weight:700}.recipe-kpi b{font:700 20px Manrope,sans-serif;color:#2b4033}
+.recipe-margin{display:inline-flex;padding:5px 8px;border-radius:20px;font-size:9px;font-weight:700}.recipe-margin.positive{background:#eaf4ed;color:#47845a}.recipe-margin.negative{background:#fbefea;color:#b36a4e}
+body.dark .recipe-kpi b{color:#e7eee8}
+@media(max-width:650px){.recipe-kpis{grid-template-columns:1fr}.recipes-management .items-table{min-width:850px}}
