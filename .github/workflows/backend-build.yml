@@ -1,0 +1,21 @@
+name: Backend build
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-build.yml"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore backend/Panathinaikon.Api/Panathinaikon.Api.csproj
+      - run: dotnet build backend/Panathinaikon.Api/Panathinaikon.Api.csproj --no-restore --configuration Release

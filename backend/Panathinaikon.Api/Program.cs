@@ -1,0 +1,50 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Panathinaikon.Api;
+
+var builder=WebApplication.CreateBuilder(args);
+var connection=builder.Configuration.GetConnectionString("DefaultConnection") ?? Environment.GetEnvironmentVariable("PANATHINAIKON_DB") ?? "";
+if(string.IsNullOrWhiteSpace(connection)) throw new InvalidOperationException("Configure ConnectionStrings__DefaultConnection or PANATHINAIKON_DB.");
+var jwtKey=builder.Configuration["Jwt:SigningKey"] ?? Environment.GetEnvironmentVariable("PANATHINAIKON_JWT_KEY");
+if(string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey)<32) throw new InvalidOperationException("Configure Jwt__SigningKey with at least 32 bytes.");
+builder.Services.AddDbContext<AppDbContext>(o=>o.UseSqlServer(connection));
+builder.Services.AddScoped<IPasswordHasher<UserAccount>,PasswordHasher<UserAccount>>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o=>o.TokenValidationParameters=new TokenValidationParameters { ValidateIssuer=true,ValidIssuer=builder.Configuration["Jwt:Issuer"],ValidateAudience=true,ValidAudience=builder.Configuration["Jwt:Audience"],ValidateIssuerSigningKey=true,IssuerSigningKey=new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),ValidateLifetime=true,ClockSkew=TimeSpan.FromSeconds(30) });
+builder.Services.AddAuthorization(); builder.Services.AddEndpointsApiExplorer(); builder.Services.AddSwaggerGen();
+builder.Services.AddCors(o=>o.AddPolicy("frontend",p=>p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? ["http://localhost:5500","http://127.0.0.1:5500"]).AllowAnyHeader().AllowAnyMethod()));
+var app=builder.Build(); app.UseCors("frontend"); app.UseAuthentication(); app.UseAuthorization();
+if(app.Environment.IsDevelopment()){app.UseSwagger();app.UseSwaggerUI();}
+app.MapGet("/api/health",()=>Results.Ok(new{status="ok",service="Panathinaikon.Api"}));
+app.MapPost("/api/auth/bootstrap",async(BootstrapRequest q,AppDbContext db,IPasswordHasher<UserAccount> hasher,IConfiguration cfg)=>{
+ if(!cfg.GetValue<bool>("Bootstrap:Enabled"))return Results.NotFound();
+ if(await db.Users.AnyAsync())return Results.Conflict(new{message="Bootstrap has already been completed."});
+ if(string.IsNullOrWhiteSpace(q.StoreName)||string.IsNullOrWhiteSpace(q.Username)||string.IsNullOrWhiteSpace(q.DisplayName)||q.Password.Length<12)return Results.BadRequest(new{message="Store, username, display name and password (12+ chars) are required."});
+ var store=new Store{Name=q.StoreName.Trim(),Code="MAIN"};db.Stores.Add(store);await db.SaveChangesAsync();
+ var user=new UserAccount{StoreId=store.Id,Username=q.Username.Trim(),DisplayName=q.DisplayName.Trim(),Role="Admin"};user.PasswordHash=hasher.HashPassword(user,q.Password);db.Users.Add(user);await db.SaveChangesAsync();
+ return Results.Created("/api/health",new{message="Administrator created. Disable Bootstrap:Enabled now."});
+}).AllowAnonymous();
+app.MapPost("/api/auth/login",async(LoginRequest q,AppDbContext db,IPasswordHasher<UserAccount> hasher,IConfiguration cfg)=>{
+ var user=await db.Users.Include(x=>x.Store).SingleOrDefaultAsync(x=>x.Username==q.Username.Trim()&&x.IsActive&&x.Store!.IsActive);
+ if(user is null||hasher.VerifyHashedPassword(user,user.PasswordHash,q.Password)==PasswordVerificationResult.Failed)return Results.Unauthorized();
+ var key=new SymmetricSecurityKey(Encoding.UTF8.GetBytes(cfg["Jwt:SigningKey"]!));var minutes=Math.Clamp(cfg.GetValue("Jwt:ExpiresMinutes",60),5,480);
+ var claims=new[]{new Claim(ClaimTypes.NameIdentifier,user.Id.ToString()),new Claim(ClaimTypes.Name,user.Username),new Claim(ClaimTypes.Role,user.Role),new Claim("store_id",user.StoreId.ToString())};
+ var token=new JwtSecurityToken(cfg["Jwt:Issuer"],cfg["Jwt:Audience"],claims,expires:DateTime.UtcNow.AddMinutes(minutes),signingCredentials:new SigningCredentials(key,SecurityAlgorithms.HmacSha256));
+ return Results.Ok(new{accessToken=new JwtSecurityTokenHandler().WriteToken(token),tokenType="Bearer",expiresIn=minutes*60,user=new{user.Id,user.Username,user.DisplayName,user.Role,user.StoreId,storeName=user.Store!.Name}});
+}).AllowAnonymous();
+var api=app.MapGroup("/api").RequireAuthorization();
+api.MapGet("/stores/current",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Stores.Where(x=>x.Id==sid).Select(x=>new{x.Id,x.Name,x.Code}).SingleAsync();});
+api.MapGet("/items",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.SaleItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Price,x.CategoryId}).ToListAsync();});
+api.MapPost("/items",async(CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(string.IsNullOrWhiteSpace(q.Name)||q.Price<0)return Results.BadRequest();var item=new SaleItem{StoreId=sid,Code=string.IsNullOrWhiteSpace(q.Code)?Guid.NewGuid().ToString("N")[..12]:q.Code.Trim(),Name=q.Name.Trim(),Price=q.Price,CategoryId=q.CategoryId};db.SaleItems.Add(item);await db.SaveChangesAsync();return Results.Created($"/api/items/{item.Id}",new{item.Id,item.Code,item.Name,item.Price});});
+api.MapGet("/tables",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Tables.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name,x.Capacity,x.Status}).ToListAsync();});
+api.MapGet("/inventory",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.StockItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Category,x.Unit,x.Quantity,x.MinimumQuantity,x.UnitCost}).ToListAsync();});
+api.MapGet("/recipes",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Recipes.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).Include(x=>x.Ingredients).Select(x=>new{x.Id,x.SaleItemId,x.SalePriceSnapshot,Ingredients=x.Ingredients.Select(i=>new{i.StockItemId,i.Quantity})}).ToListAsync();});
+api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc}).Take(100).ToListAsync();});
+app.Run();
+public sealed record LoginRequest(string Username,string Password);
+public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
+public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);

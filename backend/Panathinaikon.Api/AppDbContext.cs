@@ -1,0 +1,17 @@
+using Microsoft.EntityFrameworkCore;
+namespace Panathinaikon.Api;
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+ public DbSet<Store> Stores => Set<Store>(); public DbSet<UserAccount> Users => Set<UserAccount>(); public DbSet<DiningTable> Tables => Set<DiningTable>(); public DbSet<ItemCategory> Categories => Set<ItemCategory>(); public DbSet<SaleItem> SaleItems => Set<SaleItem>(); public DbSet<Customer> Customers => Set<Customer>(); public DbSet<SalesOrder> Orders => Set<SalesOrder>(); public DbSet<SalesOrderLine> OrderLines => Set<SalesOrderLine>(); public DbSet<StockItem> StockItems => Set<StockItem>(); public DbSet<StockMovement> StockMovements => Set<StockMovement>(); public DbSet<Recipe> Recipes => Set<Recipe>(); public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
+ protected override void OnModelCreating(ModelBuilder b)
+ {
+  b.Entity<DiningTable>().ToTable("DiningTables"); b.Entity<ItemCategory>().ToTable("ItemCategories"); b.Entity<SalesOrder>().ToTable("SalesOrders"); b.Entity<SalesOrderLine>().ToTable("SalesOrderLines");
+  b.Entity<Store>().HasIndex(x=>x.Code).IsUnique(); b.Entity<UserAccount>().HasIndex(x=>new{x.StoreId,x.Username}).IsUnique(); b.Entity<UserAccount>().HasOne(x=>x.Store).WithMany().HasForeignKey(x=>x.StoreId).OnDelete(DeleteBehavior.Restrict);
+  b.Entity<DiningTable>().HasIndex(x=>new{x.StoreId,x.Name}).IsUnique(); b.Entity<ItemCategory>().HasIndex(x=>new{x.StoreId,x.Name}).IsUnique(); b.Entity<SaleItem>().HasIndex(x=>new{x.StoreId,x.Code}).IsUnique(); b.Entity<SaleItem>().Property(x=>x.Price).HasPrecision(18,2);
+  b.Entity<SalesOrder>().HasIndex(x=>new{x.StoreId,x.OrderNumber}).IsUnique(); b.Entity<SalesOrder>().Property(x=>x.Subtotal).HasPrecision(18,2); b.Entity<SalesOrder>().Property(x=>x.DiscountAmount).HasPrecision(18,2); b.Entity<SalesOrder>().Property(x=>x.Total).HasPrecision(18,2);
+  b.Entity<SalesOrderLine>().Property(x=>x.UnitPrice).HasPrecision(18,2); b.Entity<SalesOrderLine>().Property(x=>x.Quantity).HasPrecision(18,3); b.Entity<SalesOrderLine>().Property(x=>x.LineTotal).HasPrecision(18,2);
+  b.Entity<StockItem>().Property(x=>x.Quantity).HasPrecision(18,3); b.Entity<StockItem>().Property(x=>x.MinimumQuantity).HasPrecision(18,3); b.Entity<StockItem>().Property(x=>x.UnitCost).HasPrecision(18,4); b.Entity<StockMovement>().Property(x=>x.QuantityDelta).HasPrecision(18,3);
+  b.Entity<RecipeIngredient>().Property(x=>x.Quantity).HasPrecision(18,3); b.Entity<Recipe>().HasIndex(x=>new{x.StoreId,x.SaleItemId}).IsUnique(); b.Entity<Recipe>().Property(x=>x.SalePriceSnapshot).HasPrecision(18,2); b.Entity<RecipeIngredient>().HasIndex(x=>new{x.RecipeId,x.StockItemId}).IsUnique();
+  b.Entity<SalesOrder>().HasMany(x=>x.Lines).WithOne(x=>x.SalesOrder).HasForeignKey(x=>x.SalesOrderId).OnDelete(DeleteBehavior.Cascade); b.Entity<Recipe>().HasMany(x=>x.Ingredients).WithOne().HasForeignKey(x=>x.RecipeId).OnDelete(DeleteBehavior.Cascade);
+ }
+}
