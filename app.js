@@ -70,8 +70,8 @@ function renderBoard(){
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView;
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView;
  document.querySelector(".section-heading").hidden=dashboard||itemsView;
- grid.hidden=dashboard;summary.hidden=dashboard;help.hidden=dashboard;
- if(dashboard)return;
+ grid.hidden=dashboard||itemsView;summary.hidden=dashboard||itemsView;help.hidden=dashboard||itemsView;
+ if(dashboard||itemsView){if(itemsView)renderItems();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
