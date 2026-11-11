@@ -134,8 +134,10 @@ function createRecipe(index=null){
  const ingredients=[];
  for(let i=0;i<count;i++){
   const old=existing?.ingredients[i];
-  const names=stockItems.map((item,n)=>n+": "+item.name+" ("+item.unit+")").join("\n");
-  const chosen=prompt("Υλικό "+(i+1)+" — γράψε τον αριθμό του υλικού:\n"+names,String(old?stockItems.findIndex(x=>x.name===old.stockName):0));if(chosen===null)return;
+  const names=stockItems.map((item,n)=>n+": "+item.name+" ("+item.unit+")").join("
+");
+  const chosen=prompt("Υλικό "+(i+1)+" — γράψε τον αριθμό του υλικού:
+"+names,String(old?stockItems.findIndex(x=>x.name===old.stockName):0));if(chosen===null)return;
   const stock=stockItems[Number(chosen)];if(!stock){showToast("Μη έγκυρο υλικό.");return;}
   const qtyRaw=prompt("Ποσότητα "+stock.unit+" για μία μερίδα:",String(old?.quantity??1));if(qtyRaw===null)return;
   const quantity=Number(qtyRaw.replace(",", "."));if(!Number.isFinite(quantity)||quantity<=0){showToast("Μη έγκυρη ποσότητα.");return;}
@@ -152,8 +154,10 @@ function createRecipe(index=null){
 document.querySelector("#addRecipeButton").addEventListener("click",()=>createRecipe());
 document.querySelector("#recipeSearch").addEventListener("input",event=>{recipeSearch=event.target.value;renderRecipes();});
 document.querySelector("#recipeTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-recipe-edit]");if(edit){createRecipe(Number(edit.dataset.recipeEdit));return;}const del=event.target.closest("[data-recipe-delete]");if(del){const i=Number(del.dataset.recipeDelete);if(confirm("Να διαγραφεί η συνταγή για "+recipes[i].itemName+";")){recipes.splice(i,1);saveRecipes();renderRecipes();}}});
-\nfunction renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes";\n document.querySelector("#recipesManagement").hidden=!recipesView;
+
+function renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes";
+ document.querySelector("#recipesManagement").hidden=!recipesView;
  document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
