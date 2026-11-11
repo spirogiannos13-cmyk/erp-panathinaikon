@@ -109,15 +109,17 @@ function moveStock(index){
 document.querySelector("#addStockItem").addEventListener("click",createStockItem);
 document.querySelector("#stockSearch").addEventListener("input",event=>{stockSearch=event.target.value;renderInventory();});
 document.querySelector("#stockTableBody").addEventListener("click",event=>{const move=event.target.closest("[data-stock-move]");if(move){moveStock(Number(move.dataset.stockMove));return;}const edit=event.target.closest("[data-stock-edit]");if(edit)editStockItem(Number(edit.dataset.stockEdit));});
-\nfunction renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory";\n document.querySelector("#inventoryManagement").hidden=!inventoryView;
+
+function renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory";
+ document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView;
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView;
  document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView;
- grid.hidden=dashboard||itemsView;summary.hidden=dashboard||itemsView;help.hidden=dashboard||itemsView;
- if(dashboard||itemsView){if(itemsView)renderItems();return;}
+ grid.hidden=dashboard||itemsView||inventoryView;summary.hidden=dashboard||itemsView||inventoryView;help.hidden=dashboard||itemsView||inventoryView;
+ if(dashboard||itemsView||inventoryView){if(itemsView)renderItems();if(inventoryView)renderInventory();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
