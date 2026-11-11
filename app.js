@@ -134,10 +134,8 @@ function createRecipe(index=null){
  const ingredients=[];
  for(let i=0;i<count;i++){
   const old=existing?.ingredients[i];
-  const names=stockItems.map((item,n)=>n+": "+item.name+" ("+item.unit+")").join("
-");
-  const chosen=prompt("Υλικό "+(i+1)+" — γράψε τον αριθμό του υλικού:
-"+names,String(old?stockItems.findIndex(x=>x.name===old.stockName):0));if(chosen===null)return;
+  const names=stockItems.map((item,n)=>n+": "+item.name+" ("+item.unit+")").join("\n");
+  const chosen=prompt("Υλικό "+(i+1)+" — γράψε τον αριθμό του υλικού:\n"+names,String(old?stockItems.findIndex(x=>x.name===old.stockName):0));if(chosen===null)return;
   const stock=stockItems[Number(chosen)];if(!stock){showToast("Μη έγκυρο υλικό.");return;}
   const qtyRaw=prompt("Ποσότητα "+stock.unit+" για μία μερίδα:",String(old?.quantity??1));if(qtyRaw===null)return;
   const quantity=Number(qtyRaw.replace(",", "."));if(!Number.isFinite(quantity)||quantity<=0){showToast("Μη έγκυρη ποσότητα.");return;}
