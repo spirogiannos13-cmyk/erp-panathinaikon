@@ -38,12 +38,19 @@ The endpoint only works while Users is empty. Immediately set `Bootstrap:Enabled
 
 No real credentials, customer data, production database details or secrets belong in source control.
 
+## Browser UI integration
+- Start the API locally and serve the repository root with VS Code Live Server at `http://localhost:5500` (or configure the matching allowed CORS origin).
+- In the UI, select `Σύνδεση βάσης`, enter the API URL (normally `http://localhost:5000`) and the administrator credentials created during bootstrap.
+- Bootstrap creates 12 dining tables and the starter product categories. Add actual menu items from the `Είδη & Τιμές` screen; the database starts without demo products.
+- When connected, item create/edit/delete and new Table, Take Away and Delivery orders use SQL Server. Delivery stage changes are persisted through the API.
+
 ## Initial endpoints
 - `GET /api/health`
 - `POST /api/auth/bootstrap` (disabled by default)
 - `POST /api/auth/login`
 - `GET /api/stores/current`
-- `GET/POST /api/items`
+- `GET/POST/PUT/DELETE /api/items`
+- `GET/POST /api/categories`
 - `GET /api/tables`
 - `GET /api/inventory`
 - `GET /api/recipes`
