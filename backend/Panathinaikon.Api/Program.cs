@@ -70,6 +70,13 @@ api.MapPost("/inventory/{id:int}/receipts",async(int id,StockReceiptRequest q,Cl
  await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Ok(new{item.Id,item.Quantity,item.UnitCost,Received=q.Quantity,SupplierId=supplier.Id,SupplierName=supplier.Name,Reference=reference});
 });
+api.MapGet("/inventory/restock-suggestions",async(ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ var items=await db.StockItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive&&x.Quantity<=x.MinimumQuantity).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name,x.Category,x.Unit,x.Quantity,x.MinimumQuantity,Shortage=x.MinimumQuantity-x.Quantity}).ToListAsync();
+ var prices=await db.StockMovements.AsNoTracking().Where(x=>x.StoreId==sid&&x.MovementType=="PurchaseReceipt"&&x.SupplierId.HasValue&&x.UnitCostSnapshot.HasValue&&items.Select(i=>i.Id).Contains(x.StockItemId)).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.StockItemId,SupplierId=x.SupplierId!.Value,SupplierName=x.Supplier!.Name,UnitCost=x.UnitCostSnapshot!.Value,x.CreatedAtUtc}).ToListAsync();
+ var result=items.Select(item=>{var latest=prices.Where(x=>x.StockItemId==item.Id).GroupBy(x=>x.SupplierId).Select(g=>g.OrderByDescending(x=>x.CreatedAtUtc).First()).OrderBy(x=>x.UnitCost).FirstOrDefault();return new{item.Id,item.Name,item.Category,item.Unit,item.Quantity,item.MinimumQuantity,item.Shortage,SuggestedQuantity=item.Shortage,EstimatedCost=latest==null?(decimal?)null:decimal.Round(item.Shortage*latest.UnitCost,2),SupplierId=latest?.SupplierId,SupplierName=latest?.SupplierName,LatestUnitCost=latest?.UnitCost,PriceDate=latest?.CreatedAtUtc};}).ToList();
+ return Results.Ok(new{ItemCount=result.Count,TotalEstimatedCost=result.Sum(x=>x.EstimatedCost??0m),Items=result});
+});
 api.MapGet("/inventory/purchase-prices",async(ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);
  var receipts=await db.StockMovements.AsNoTracking().Where(x=>x.StoreId==sid&&x.MovementType=="PurchaseReceipt"&&x.UnitCostSnapshot.HasValue&&x.SupplierId.HasValue).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.StockItemId,StockItemName=db.StockItems.Where(s=>s.Id==x.StockItemId&&s.StoreId==sid&&s.IsActive).Select(s=>s.Name).FirstOrDefault(),Unit=db.StockItems.Where(s=>s.Id==x.StockItemId&&s.StoreId==sid&&s.IsActive).Select(s=>s.Unit).FirstOrDefault(),SupplierId=x.SupplierId!.Value,SupplierName=x.Supplier!.Name,UnitCost=x.UnitCostSnapshot!.Value,x.QuantityDelta,x.CreatedAtUtc,x.Reference}).ToListAsync();

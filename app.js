@@ -91,6 +91,20 @@ function renderInventory(){
  document.querySelector("#stockTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td><b>${item.quantity} ${item.unit}</b></td><td>${item.min} ${item.unit}</td><td><span class="stock-state ${item.quantity<=item.min?"low":"ok"}">${item.quantity<=item.min?"Χαμηλό":"Επαρκές"}</span></td><td><button class="item-edit-button" data-stock-history="${item.index}">Ιστορικό</button><button class="item-edit-button" data-stock-move="${item.index}">＋ / − Κίνηση</button><button class="item-delete-button" data-stock-edit="${item.index}">Επεξεργασία</button></td></tr>`).join("")||'<tr><td colspan="6" class="items-empty">Δεν βρέθηκαν υλικά.</td></tr>';
 }
 
+async function showRestockSuggestions(){
+ if(!apiConfig.connected){showToast("Συνδέσου πρώτα στη βάση δεδομένων.");return;}
+ try{
+  const data=await apiRequest("/api/inventory/restock-suggestions"),rows=data.items||[];
+  let modal=document.querySelector("#restockSuggestionsModal");
+  if(!modal){modal=document.createElement("div");modal.id="restockSuggestionsModal";modal.className="modal-backdrop";modal.style.zIndex="1100";document.body.append(modal);modal.addEventListener("click",e=>{if(e.target===modal||e.target.closest("[data-close-restock]"))modal.hidden=true;});}
+  const fmt=v=>v==null?"—":Number(v).toLocaleString("el-GR",{style:"currency",currency:"EUR",minimumFractionDigits:2,maximumFractionDigits:2});
+  const body=rows.map(x=>'<tr><td><strong>'+escapeCustomerText(x.name)+'</strong><small>'+escapeCustomerText(x.category||"")+'</small></td><td>'+x.quantity+' '+escapeCustomerText(x.unit)+'</td><td>'+x.minimumQuantity+' '+escapeCustomerText(x.unit)+'</td><td><b>'+x.suggestedQuantity+' '+escapeCustomerText(x.unit)+'</b></td><td>'+escapeCustomerText(x.supplierName||"Χωρίς ιστορικό τιμών")+'</td><td>'+(x.latestUnitCost==null?"—":fmt(x.latestUnitCost)+" / "+escapeCustomerText(x.unit))+'</td><td>'+fmt(x.estimatedCost)+'</td></tr>').join("");
+  modal.innerHTML='<section class="order-modal restock-suggestions-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΑΠΟΘΗΚΗ · ΑΝΑΠΛΗΡΩΣΗ</div><h2>Προτάσεις αναπλήρωσης</h2><p>Υλικά στο ή κάτω από το όριο ασφαλείας. Η προτεινόμενη ποσότητα καλύπτει ακριβώς το έλλειμμα μέχρι το όριο.</p></div><button class="modal-close" type="button" data-close-restock>×</button></div><div class="inventory-kpis"><div class="inventory-kpi"><span>ΥΛΙΚΑ ΓΙΑ ΑΝΑΠΛΗΡΩΣΗ</span><b>'+data.itemCount+'</b></div><div class="inventory-kpi"><span>ΕΚΤΙΜΩΜΕΝΟ ΚΟΣΤΟΣ</span><b>'+fmt(data.totalEstimatedCost)+'</b></div></div><div class="items-table-wrap"><table class="items-table"><thead><tr><th>Υλικό</th><th>Διαθέσιμο</th><th>Όριο</th><th>Προτεινόμενη ποσότητα</th><th>Οικονομικότερος προμηθευτής*</th><th>Τελευταία τιμή</th><th>Εκτίμηση</th></tr></thead><tbody>'+body+'</tbody></table></div><p class="demo-notice">* Βάσει της χαμηλότερης τελευταίας καταχωρισμένης τιμής ανά προμηθευτή. Οι εκτιμήσεις είναι ενδεικτικές.</p><div class="modal-actions"><button type="button" class="secondary-button" data-close-restock>Κλείσιμο</button></div></section>';
+  modal.hidden=false;
+ }catch(err){showToast(err.message);}
+}
+document.querySelector("#restockSuggestionsButton").addEventListener("click",()=>void showRestockSuggestions());
+
 async function showPurchasePriceComparison(){
  if(!apiConfig.connected){showToast("Συνδέσου πρώτα στη βάση δεδομένων.");return;}
  try{
