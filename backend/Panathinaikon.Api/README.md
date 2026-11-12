@@ -52,7 +52,8 @@ No real credentials, customer data, production database details or secrets belon
 - `GET/POST/PUT/DELETE /api/items`
 - `GET/POST /api/categories`
 - `GET /api/tables`
-- `GET/POST/PUT/DELETE /api/inventory` and `POST /api/inventory/{id}/movements`\n- `GET/POST/DELETE /api/recipes`
+- `GET/POST/PUT/DELETE /api/inventory` and `POST /api/inventory/{id}/movements`
+- `GET/POST/DELETE /api/recipes`
 - `GET /api/recipes`
 - `GET /api/orders`
 
