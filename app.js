@@ -190,7 +190,8 @@ function renderOrdersHistory(){
   const pay=event.target.closest("[data-history-payment]");if(pay){const order=rows.find(o=>o.id===Number(pay.dataset.historyPayment));if(!order)return;const balance=Math.max(0,Number(order.total)-Number(order.paidAmount||0));const raw=prompt("Ποσό πληρωμής (€). Υπόλοιπο: "+money(balance),balance.toFixed(2).replace(".",","));if(raw===null)return;const amount=Number(raw.replace(",","."));if(!Number.isFinite(amount)||amount<=0){showToast("Μη έγκυρο ποσό.");return;}const choice=prompt("Τρόπος πληρωμής: 1 Μετρητά, 2 Κάρτα, 3 Τραπεζική μεταφορά, 4 Άλλο","1");if(choice===null)return;const method=({"1":"Cash","2":"Card","3":"BankTransfer","4":"Other"})[choice.trim()];if(!method){showToast("Μη έγκυρος τρόπος πληρωμής.");return;}try{await apiRequest("/api/orders/"+order.id+"/payments",{method:"POST",body:JSON.stringify({amount,method})});await loadSqlData();renderOrdersHistory();showToast("Η πληρωμή καταχωρίστηκε.");}catch(e){showToast(e.message);}}
  });
 }
-\nfunction renderBoard(){
+
+function renderBoard(){
  const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes",ordersView=activeBoard==="orders";
  document.querySelector("#recipesManagement").hidden=!recipesView;
  document.querySelector("#ordersManagement").hidden=!ordersView;
@@ -198,10 +199,10 @@ function renderOrdersHistory(){
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView;
- grid.hidden=dashboard||itemsView||inventoryView||recipesView;summary.hidden=dashboard||itemsView||inventoryView||recipesView;help.hidden=dashboard||itemsView||inventoryView||recipesView;
- if(dashboard||itemsView||inventoryView||recipesView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();return;}
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
+ grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
+ if(dashboard||itemsView||inventoryView||recipesView||ordersView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
