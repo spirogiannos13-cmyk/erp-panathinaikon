@@ -215,20 +215,31 @@ async function renderCustomerOrders(customerId,customerName){
    (rows.length?'<div class="items-table-wrap"><table class="items-table order-history-table"><thead><tr><th>Παραγγελία</th><th>Ημερομηνία</th><th>Κανάλι</th><th>Κατάσταση</th><th>Σύνολο</th><th>Πληρώθηκε</th><th>Υπόλοιπο</th></tr></thead><tbody>'+rows.map(o=>{const total=Number(o.total),paid=Number(o.paidAmount||0);return '<tr><td>'+escapeCustomerText(o.orderNumber)+'</td><td>'+new Date(o.createdAtUtc).toLocaleString("el-GR")+'</td><td>'+escapeCustomerText(o.channel)+'</td><td>'+escapeCustomerText(o.status)+'</td><td>'+money(total)+'</td><td>'+money(paid)+'</td><td>'+money(Math.max(0,total-paid))+'</td></tr>';}).join('')+'</tbody></table></div>':'<p>Δεν υπάρχουν καταχωρισμένες παραγγελίες για αυτόν τον πελάτη.</p>');
  }catch(e){host.innerHTML='<p>'+escapeCustomerText(e.message)+'</p>';}
 }
-async function saveCustomer(customer){
- const name=prompt("Ονοματεπώνυμο πελάτη:",customer?.name||"");if(name===null)return;
- const phone=prompt("Τηλέφωνο:",customer?.phone||"");if(phone===null)return;
- const address=prompt("Διεύθυνση:",customer?.address||"");if(address===null)return;
- if(!name.trim()){showToast("Το όνομα είναι υποχρεωτικό.");return;}
- try{await apiRequest(customer?"/api/customers/"+customer.id:"/api/customers",{method:customer?"PUT":"POST",body:JSON.stringify({name:name.trim(),phone:phone.trim()||null,address:address.trim()||null})});await renderCustomers();showToast("Τα στοιχεία πελάτη αποθηκεύτηκαν.");}
- catch(e){showToast(e.message);}
+function openCustomerModal(customer=null){
+ let modal=document.querySelector("#customerEditModal");
+ if(!modal){
+  modal=document.createElement("div");modal.id="customerEditModal";modal.className="modal-backdrop";modal.style.zIndex="1000";
+  modal.innerHTML='<section class="order-modal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle"><div class="modal-heading"><div><div class="eyebrow">ΠΕΛΑΤΟΛΟΓΙΟ</div><h2 id="customerModalTitle">Νέος πελάτης</h2></div><button class="modal-close" type="button" data-close-customer aria-label="Κλείσιμο">×</button></div><form id="orderForm"><label>Ονοματεπώνυμο<input id="customerName" name="name" maxlength="160" required autocomplete="name"></label><label>Τηλέφωνο<input id="customerPhone" name="phone" type="tel" maxlength="40" autocomplete="tel"></label><label>Διεύθυνση<input id="customerAddress" name="address" maxlength="300" autocomplete="street-address"></label><p id="customerFormError" role="alert" class="demo-notice"></p><div class="modal-actions"><button class="secondary-button" type="button" data-close-customer>Ακύρωση</button><button class="primary-button" type="submit">Αποθήκευση</button></div></form></section>';
+  document.body.append(modal);
+  modal.addEventListener("click",event=>{if(event.target===modal||event.target.closest("[data-close-customer]"))modal.hidden=true;});
+  modal.querySelector("#orderForm").addEventListener("submit",async event=>{
+   event.preventDefault();const form=event.currentTarget,error=form.querySelector("#customerFormError"),name=form.querySelector("#customerName").value.trim();
+   if(!name){error.textContent="Το ονοματεπώνυμο είναι υποχρεωτικό.";return;}
+   const id=Number(modal.dataset.customerId)||null;
+   try{await apiRequest(id?"/api/customers/"+id:"/api/customers",{method:id?"PUT":"POST",body:JSON.stringify({name,phone:form.querySelector("#customerPhone").value.trim()||null,address:form.querySelector("#customerAddress").value.trim()||null})});modal.hidden=true;await renderCustomers();showToast("Τα στοιχεία πελάτη αποθηκεύτηκαν.");}
+   catch(e){error.textContent=e.message;}
+  });
+ }
+ modal.dataset.customerId=customer?.id||"";modal.querySelector("#customerModalTitle").textContent=customer?"Επεξεργασία πελάτη":"Νέος πελάτης";
+ modal.querySelector("#customerName").value=customer?.name||"";modal.querySelector("#customerPhone").value=customer?.phone||"";modal.querySelector("#customerAddress").value=customer?.address||"";modal.querySelector("#customerFormError").textContent="";
+ modal.hidden=false;modal.querySelector("#customerName").focus();
 }
 document.querySelector("#customersManagement").addEventListener("input",event=>{if(event.target.id==="customersSearch")void renderCustomers();});
 document.querySelector("#customersManagement").addEventListener("click",async event=>{
- if(event.target.closest("#addCustomerButton")){await saveCustomer(null);return;}
+ if(event.target.closest("#addCustomerButton")){openCustomerModal();return;}
  const history=event.target.closest("[data-customer-history]");if(history){const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(history.dataset.customerHistory));if(customer)await renderCustomerOrders(customer.id,customer.name);return;}
  if(event.target.closest("#closeCustomerHistory")){document.querySelector("#customerOrderHistory").hidden=true;return;}
- const edit=event.target.closest("[data-edit-customer]");if(edit){try{const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(edit.dataset.editCustomer));if(customer)await saveCustomer(customer);}catch(e){showToast(e.message);}}
+ const edit=event.target.closest("[data-edit-customer]");if(edit){try{const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(edit.dataset.editCustomer));if(customer)openCustomerModal(customer);}catch(e){showToast(e.message);}}
 });
 
 function renderBoard(){
