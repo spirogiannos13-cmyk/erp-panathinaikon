@@ -82,6 +82,21 @@ api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext 
  db.Orders.Add(order);if(table is not null)table.Status="Occupied";await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{order.Id}",new{order.Id,order.OrderNumber,order.Channel,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
 });
+api.MapGet("/orders/{id:int}/payments",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(!await db.Orders.AnyAsync(x=>x.Id==id&&x.StoreId==sid))return Results.NotFound();var rows=await db.OrderPayments.AsNoTracking().Where(x=>x.StoreId==sid&&x.SalesOrderId==id).OrderBy(x=>x.PaidAtUtc).Select(x=>new{x.Id,x.Amount,x.Method,x.Reference,x.PaidAtUtc}).ToListAsync();return Results.Ok(rows);});
+api.MapPost("/orders/{id:int}/payments",async Task<IResult> (int id,CreateOrderPaymentRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);var method=q.Method?.Trim();
+ if(q.Amount<=0||method is null||!new[]{"Cash","Card","BankTransfer","Other"}.Contains(method))return Results.BadRequest(new{message="Καταχώρισε θετικό ποσό και έγκυρο τρόπο πληρωμής."});
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var order=await db.Orders.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(order is null)return Results.NotFound();
+ if(order.Status=="Cancelled")return Results.Conflict(new{message="Δεν μπορεί να καταχωριστεί πληρωμή σε ακυρωμένη παραγγελία."});
+ var paid=await db.OrderPayments.Where(x=>x.StoreId==sid&&x.SalesOrderId==id).SumAsync(x=>(decimal?)x.Amount)??0m;
+ var outstanding=order.Total-paid;
+ if(q.Amount>outstanding)return Results.Conflict(new{message=$"Το ποσό υπερβαίνει το υπόλοιπο ({outstanding:0.00} €)."});
+ var payment=new OrderPayment{StoreId=sid,SalesOrderId=id,Amount=decimal.Round(q.Amount,2),Method=method,Reference=string.IsNullOrWhiteSpace(q.Reference)?null:q.Reference.Trim()};
+ db.OrderPayments.Add(payment);await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Created($"/api/orders/{id}/payments/{payment.Id}",new{payment.Id,payment.Amount,payment.Method,payment.Reference,payment.PaidAtUtc,TotalPaid=paid+payment.Amount,Outstanding=order.Total-paid-payment.Amount});
+});
 api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);
  await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -141,3 +156,5 @@ public sealed record RecipeRequest(int SaleItemId,decimal SalePriceSnapshot,List
 public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
 public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);
 public sealed record UpdateOrderStatusRequest(string Status);
+
+public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
