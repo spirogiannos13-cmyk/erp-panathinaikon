@@ -91,6 +91,20 @@ function renderInventory(){
  document.querySelector("#stockTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td><b>${item.quantity} ${item.unit}</b></td><td>${item.min} ${item.unit}</td><td><span class="stock-state ${item.quantity<=item.min?"low":"ok"}">${item.quantity<=item.min?"Χαμηλό":"Επαρκές"}</span></td><td><button class="item-edit-button" data-stock-history="${item.index}">Ιστορικό</button><button class="item-edit-button" data-stock-move="${item.index}">＋ / − Κίνηση</button><button class="item-delete-button" data-stock-edit="${item.index}">Επεξεργασία</button></td></tr>`).join("")||'<tr><td colspan="6" class="items-empty">Δεν βρέθηκαν υλικά.</td></tr>';
 }
 
+async function showPurchasePriceComparison(){
+ if(!apiConfig.connected){showToast("Συνδέσου πρώτα στη βάση δεδομένων.");return;}
+ try{
+  const rows=await apiRequest("/api/inventory/purchase-prices");
+  let modal=document.querySelector("#purchasePriceComparisonModal");
+  if(!modal){modal=document.createElement("div");modal.id="purchasePriceComparisonModal";modal.className="modal-backdrop";modal.style.zIndex="1100";document.body.append(modal);modal.addEventListener("click",e=>{if(e.target===modal||e.target.closest("[data-close-price-comparison]"))modal.hidden=true;});}
+  const fmt=v=>Number(v).toLocaleString("el-GR",{style:"currency",currency:"EUR",minimumFractionDigits:4,maximumFractionDigits:4});
+  const sections=rows.map(item=>'<section class="price-comparison-item"><div class="price-comparison-heading"><strong>'+escapeCustomerText(item.stockItemName)+'</strong><span>Καλύτερη τελευταία τιμή: <b>'+fmt(item.bestPrice)+' / '+escapeCustomerText(item.unit)+'</b></span></div><div class="items-table-wrap"><table class="items-table"><thead><tr><th>Προμηθευτής</th><th>Τελευταία τιμή / '+escapeCustomerText(item.unit)+'</th><th>Μέση τιμή αγορών</th><th>Τελευταία αγορά</th><th>Αγορές</th></tr></thead><tbody>'+item.suppliers.map(s=>'<tr><td><strong>'+escapeCustomerText(s.supplierName)+'</strong></td><td>'+fmt(s.latestUnitCost)+'</td><td>'+fmt(s.averageUnitCost)+'</td><td>'+new Date(s.latestPurchaseAtUtc).toLocaleDateString("el-GR")+'</td><td>'+s.purchaseCount+'</td></tr>').join("")+'</tbody></table></div></section>').join("");
+  modal.innerHTML='<section class="order-modal price-comparison-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΑΠΟΘΗΚΗ · ΑΓΟΡΕΣ</div><h2>Σύγκριση τιμών προμηθευτών</h2><p>Σύγκριση τελευταίας και μέσης τιμής ανά υλικό, βάσει καταχωρισμένων παραλαβών.</p></div><button class="modal-close" type="button" data-close-price-comparison>×</button></div>'+(sections||'<p class="items-empty">Δεν υπάρχουν παραλαβές με καταχωρισμένη τιμή αγοράς.</p>')+'<div class="modal-actions"><button type="button" class="secondary-button" data-close-price-comparison>Κλείσιμο</button></div></section>';
+  modal.hidden=false;
+ }catch(err){showToast(err.message);}
+}
+document.querySelector("#compareSupplierPricesButton").addEventListener("click",()=>void showPurchasePriceComparison());
+
 async function openStockReceipt(){
  if(!apiConfig.connected){showToast("Συνδέσου πρώτα στη βάση δεδομένων.");return;}
  if(!stockItems.length){showToast("Πρόσθεσε πρώτα υλικά στην αποθήκη.");return;}
