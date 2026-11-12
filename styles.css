@@ -181,3 +181,5 @@ body.dark .table-tile>strong,body.dark .table-service-tile>strong,body.dark .del
 
 .customers-management .items-table td{vertical-align:middle}
 .customers-management .items-table td strong{color:var(--text)}
+
+#reservationForm{display:grid;gap:12px}#reservationForm label{display:grid;gap:6px;color:#59695f;font-size:10px;font-weight:700}#reservationForm input,#reservationForm select,#reservationForm textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:inherit;padding:10px 11px;font:400 12px "DM Sans",sans-serif}#reservationForm textarea{resize:vertical}body.dark #reservationForm label{color:#c2cec5}
