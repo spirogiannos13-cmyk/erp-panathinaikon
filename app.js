@@ -200,10 +200,21 @@ async function renderCustomers(){
   const search=(host.querySelector("#customersSearch")?.value||"").trim().toLocaleLowerCase("el");
   const filtered=customers.filter(c=>(c.name+" "+(c.phone||"")+" "+(c.address||"")).toLocaleLowerCase("el").includes(search));
   host.querySelector("#customersCount").textContent=filtered.length+" / "+customers.length+" πελάτες";
-  host.querySelector("#customersTableBody").innerHTML=filtered.map(c=>'<tr><td><strong>'+escapeCustomerText(c.name)+'</strong></td><td>'+escapeCustomerText(c.phone||"—")+'</td><td>'+escapeCustomerText(c.address||"—")+'</td><td>'+c.orderCount+'</td><td>'+money(Number(c.totalSpent))+'</td><td><button class="item-edit-button" data-edit-customer="'+c.id+'">Επεξεργασία</button></td></tr>').join("")||'<tr><td colspan="6">Δεν βρέθηκαν πελάτες.</td></tr>';
+  host.querySelector("#customersTableBody").innerHTML=filtered.map(c=>'<tr><td><strong>'+escapeCustomerText(c.name)+'</strong></td><td>'+escapeCustomerText(c.phone||"—")+'</td><td>'+escapeCustomerText(c.address||"—")+'</td><td>'+c.orderCount+'</td><td>'+money(Number(c.totalSpent))+'</td><td><button class="item-edit-button" data-customer-history="'+c.id+'">Ιστορικό</button> <button class="item-edit-button" data-edit-customer="'+c.id+'">Επεξεργασία</button></td></tr>').join("")||'<tr><td colspan="6">Δεν βρέθηκαν πελάτες.</td></tr>';
  }catch(e){host.querySelector("#customersTableBody").innerHTML='<tr><td colspan="6">'+escapeCustomerText(e.message)+'</td></tr>';}
 }
 function escapeCustomerText(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+async function renderCustomerOrders(customerId,customerName){
+ const host=document.querySelector("#customerOrderHistory");
+ if(!host)return;
+ host.hidden=false;host.innerHTML='<p>Φόρτωση ιστορικού…</p>';
+ try{
+  const orders=await apiRequest("/api/orders");
+  const rows=orders.filter(o=>o.customerId===customerId);
+  host.innerHTML='<div class="items-page-heading"><div><div class="eyebrow">ΙΣΤΟΡΙΚΟ ΠΕΛΑΤΗ</div><h3>'+escapeCustomerText(customerName)+'</h3><p>'+rows.length+' παραγγελίες</p></div><button class="secondary-button" type="button" id="closeCustomerHistory">Κλείσιμο</button></div>'+
+   (rows.length?'<div class="items-table-wrap"><table class="items-table order-history-table"><thead><tr><th>Παραγγελία</th><th>Ημερομηνία</th><th>Κανάλι</th><th>Κατάσταση</th><th>Σύνολο</th><th>Πληρώθηκε</th><th>Υπόλοιπο</th></tr></thead><tbody>'+rows.map(o=>{const total=Number(o.total),paid=Number(o.paidAmount||0);return '<tr><td>'+escapeCustomerText(o.orderNumber)+'</td><td>'+new Date(o.createdAtUtc).toLocaleString("el-GR")+'</td><td>'+escapeCustomerText(o.channel)+'</td><td>'+escapeCustomerText(o.status)+'</td><td>'+money(total)+'</td><td>'+money(paid)+'</td><td>'+money(Math.max(0,total-paid))+'</td></tr>';}).join('')+'</tbody></table></div>':'<p>Δεν υπάρχουν καταχωρισμένες παραγγελίες για αυτόν τον πελάτη.</p>');
+ }catch(e){host.innerHTML='<p>'+escapeCustomerText(e.message)+'</p>';}
+}
 async function saveCustomer(customer){
  const name=prompt("Ονοματεπώνυμο πελάτη:",customer?.name||"");if(name===null)return;
  const phone=prompt("Τηλέφωνο:",customer?.phone||"");if(phone===null)return;
@@ -215,6 +226,8 @@ async function saveCustomer(customer){
 document.querySelector("#customersManagement").addEventListener("input",event=>{if(event.target.id==="customersSearch")void renderCustomers();});
 document.querySelector("#customersManagement").addEventListener("click",async event=>{
  if(event.target.closest("#addCustomerButton")){await saveCustomer(null);return;}
+ const history=event.target.closest("[data-customer-history]");if(history){const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(history.dataset.customerHistory));if(customer)await renderCustomerOrders(customer.id,customer.name);return;}
+ if(event.target.closest("#closeCustomerHistory")){document.querySelector("#customerOrderHistory").hidden=true;return;}
  const edit=event.target.closest("[data-edit-customer]");if(edit){try{const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(edit.dataset.editCustomer));if(customer)await saveCustomer(customer);}catch(e){showToast(e.message);}}
 });
 
