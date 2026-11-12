@@ -178,3 +178,6 @@ body.dark .table-tile>strong,body.dark .table-service-tile>strong,body.dark .del
 @media(max-width:700px){.report-grid{grid-template-columns:1fr}.report-row{font-size:10px}}
 
 .order-history-table{min-width:980px}.order-history-table td small{display:block;margin-top:4px;color:#87938b;font-size:9px}.order-history-status{display:inline-block;padding:5px 8px;border-radius:20px;background:var(--canvas);border:1px solid var(--line);font-size:9px}.order-history-detail{margin-top:16px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.order-history-detail h3{margin:0 0 8px;font:700 15px Manrope,sans-serif;color:var(--deep)}.order-history-detail h4{margin:16px 0 8px}.order-history-lines{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:11px}.order-history-detail p{font-size:11px;color:#87938b}body.dark .order-history-detail h3{color:#e7eee8}
+
+.customers-management .items-table td{vertical-align:middle}
+.customers-management .items-table td strong{color:var(--text)}
