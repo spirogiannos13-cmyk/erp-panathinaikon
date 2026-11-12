@@ -82,14 +82,50 @@ api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext 
  db.Orders.Add(order);if(table is not null)table.Status="Occupied";await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{order.Id}",new{order.Id,order.OrderNumber,order.Channel,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
 });
-api.MapPatch("/orders/{id:int}/status",async(int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
- var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.Include(x=>x.Lines).SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(order is null)return Results.NotFound();
+api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var order=await db.Orders.Include(x=>x.Lines).SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(order is null)return Results.NotFound();
  var allowed=order.Channel=="Delivery"?new[]{"New","Preparing","Ready","Dispatched","Delivered","Cancelled"}:new[]{"Open","Preparing","Closed","Cancelled"};
  if(!allowed.Contains(q.Status))return Results.BadRequest(new{message="Invalid status for this order channel."});
  if(order.Status=="Delivered"||order.Status=="Closed"||order.Status=="Cancelled")return Results.Conflict(new{message="This order is already finalized."});
- order.Status=q.Status;if(q.Status is "Delivered" or "Closed" or "Cancelled")order.ClosedAtUtc=DateTime.UtcNow;
- if(order.TableId.HasValue&&q.Status is "Closed" or "Cancelled"){var table=await db.Tables.SingleOrDefaultAsync(x=>x.Id==order.TableId&&x.StoreId==sid);if(table is not null)table.Status="Available";}
- await db.SaveChangesAsync();return Results.Ok(new{order.Id,order.OrderNumber,order.Status,order.ClosedAtUtc});
+ var reference="Order:"+order.Id;
+ if(q.Status=="Preparing"&&order.Status!="Preparing"){
+  var alreadyConsumed=await db.StockMovements.AnyAsync(x=>x.StoreId==sid&&x.Reference==reference&&x.MovementType=="OrderConsumption");
+  if(!alreadyConsumed){
+   var saleIds=order.Lines.Select(x=>x.SaleItemId).Distinct().ToArray();
+   var recipes=await db.Recipes.AsNoTracking().Include(x=>x.Ingredients).Where(x=>x.StoreId==sid&&x.IsActive&&saleIds.Contains(x.SaleItemId)).ToListAsync();
+   var requirements=order.Lines.SelectMany(line=>recipes.Where(r=>r.SaleItemId==line.SaleItemId).SelectMany(recipe=>recipe.Ingredients.Select(ingredient=>new{ingredient.StockItemId,Required=ingredient.Quantity*line.Quantity}))).GroupBy(x=>x.StockItemId).Select(g=>new{StockItemId=g.Key,Quantity=g.Sum(x=>x.Required)}).ToList();
+   var stockIds=requirements.Select(x=>x.StockItemId).ToArray();
+   var stock=await db.StockItems.Where(x=>x.StoreId==sid&&x.IsActive&&stockIds.Contains(x.Id)).ToDictionaryAsync(x=>x.Id);
+   foreach(var requirement in requirements){
+    if(!stock.TryGetValue(requirement.StockItemId,out var item))return Results.Conflict(new{message="Υλικό συνταγής δεν είναι διαθέσιμο στην αποθήκη."});
+    if(item.Quantity<requirement.Quantity)return Results.Conflict(new{message=$"Δεν υπάρχει επαρκές απόθεμα για: {item.Name}. Διαθέσιμο: {item.Quantity} {item.Unit}, απαιτείται: {requirement.Quantity} {item.Unit}."});
+   }
+   foreach(var requirement in requirements){
+    var item=stock[requirement.StockItemId];item.Quantity-=requirement.Quantity;
+    db.StockMovements.Add(new StockMovement{StoreId=sid,StockItemId=item.Id,QuantityDelta=-requirement.Quantity,MovementType="OrderConsumption",Reference=reference});
+   }
+  }
+ }
+ if(q.Status=="Cancelled"){
+  var consumption=await db.StockMovements.Where(x=>x.StoreId==sid&&x.Reference==reference&&x.MovementType=="OrderConsumption").ToListAsync();
+  var alreadyReversed=await db.StockMovements.AnyAsync(x=>x.StoreId==sid&&x.Reference==reference&&x.MovementType=="OrderReversal");
+  if(consumption.Count>0&&!alreadyReversed){
+   foreach(var movement in consumption){
+    var item=await db.StockItems.SingleOrDefaultAsync(x=>x.Id==movement.StockItemId&&x.StoreId==sid);
+    if(item is null)return Results.Conflict(new{message="Δεν βρέθηκε υλικό για αντιλογισμό αποθέματος."});
+    var restored=-movement.QuantityDelta;item.Quantity+=restored;
+    db.StockMovements.Add(new StockMovement{StoreId=sid,StockItemId=item.Id,QuantityDelta=restored,MovementType="OrderReversal",Reference=reference});
+   }
+  }
+ }
+ order.Status=q.Status;
+ if(q.Status is "Delivered" or "Closed" or "Cancelled")order.ClosedAtUtc=DateTime.UtcNow;
+ if(order.TableId.HasValue&&(q.Status is "Closed" or "Cancelled")){var table=await db.Tables.SingleOrDefaultAsync(x=>x.Id==order.TableId&&x.StoreId==sid);if(table is not null)table.Status="Available";}
+ await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Ok(new{order.Id,order.OrderNumber,order.Status,order.ClosedAtUtc});
 });
 app.Run();
 public sealed record LoginRequest(string Username,string Password);
