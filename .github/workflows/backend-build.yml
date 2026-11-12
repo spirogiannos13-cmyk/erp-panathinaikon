@@ -2,7 +2,9 @@ name: Backend build
 on:
   pull_request:
     paths:
-      - "backend/**"\n      - "app.js"
+      - "backend/**"
+      - "app.js"
+      - "app.js"
       - ".github/workflows/backend-build.yml"
   push:
     branches: [main]
@@ -17,5 +19,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n      - run: node --check app.js\n      - run: dotnet restore backend/Panathinaikon.Api/Panathinaikon.Api.csproj
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check app.js
+      - run: dotnet restore backend/Panathinaikon.Api/Panathinaikon.Api.csproj
       - run: dotnet build backend/Panathinaikon.Api/Panathinaikon.Api.csproj --no-restore --configuration Release
