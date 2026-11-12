@@ -169,3 +169,10 @@ body.dark .recipe-kpi b{color:#e7eee8}
 body.dark .table-tile>strong,body.dark .table-service-tile>strong,body.dark .delivery-list-section h3,body.dark .delivery-row>strong{color:#e7eee8}
 @media(max-width:1050px){.takeaway-layout{grid-template-columns:1fr}.cashier-ticket,.cashier-catalog{grid-column:1;grid-row:auto}.cashier-ticket{order:2}.cashier-catalog{order:1}.delivery-list-section{overflow-x:auto}.delivery-list-head,.delivery-row{min-width:950px}}
 @media(max-width:700px){.floorplan-grid{min-height:300px;gap:9px}.table-tile,.table-service-tile{width:68px;min-height:86px}.cashier-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cashier-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+.report-grid .stat-card{padding:18px}
+.report-grid h3{font-size:13px;margin:0 0 12px}
+.report-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:11px}
+.report-row b{text-align:right}
+@media(max-width:700px){.report-grid{grid-template-columns:1fr}.report-row{font-size:10px}}
