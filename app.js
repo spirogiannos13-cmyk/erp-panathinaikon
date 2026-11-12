@@ -352,10 +352,10 @@ function renderBoard(){
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
- grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
- if(dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();if(reservationsView)void renderReservations();if(suppliersView)void renderSuppliers();if(staffView)void renderStaff();return;}
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;
+ grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView;
+ if(dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView||staffView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();if(reservationsView)void renderReservations();if(suppliersView)void renderSuppliers();if(staffView)void renderStaff();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
