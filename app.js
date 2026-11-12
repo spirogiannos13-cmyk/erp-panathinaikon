@@ -162,6 +162,18 @@ document.querySelector("#addRecipeButton").addEventListener("click",()=>createRe
 document.querySelector("#recipeSearch").addEventListener("input",event=>{recipeSearch=event.target.value;renderRecipes();});
 document.querySelector("#recipeTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-recipe-edit]");if(edit){createRecipe(Number(edit.dataset.recipeEdit));return;}const del=event.target.closest("[data-recipe-delete]");if(del){const i=Number(del.dataset.recipeDelete);if(confirm("Να διαγραφεί η συνταγή για "+recipes[i].itemName+";")){if(apiConfig.connected){void apiRequest("/api/recipes/"+recipes[i].id,{method:"DELETE"}).then(loadSqlData).then(()=>showToast("Η συνταγή διαγράφηκε από τη βάση.")).catch(e=>showToast(e.message));return;}recipes.splice(i,1);saveRecipes();renderRecipes();}}});
 
+async function renderDashboard(){
+ const host=document.querySelector("#dashboardView");if(!host)return;
+ if(!apiConfig.connected){host.innerHTML='<section class="page-heading"><div><div class="eyebrow">ΠΑΝΑΘΗΝΑΪΚΟΝ</div><h1>Επισκόπηση ημέρας</h1><p>Συνδέσου με τη SQL Server για να εμφανιστούν τα πραγματικά στοιχεία.</p></div></section>';return;}
+ host.innerHTML='<section class="page-heading"><div><div class="eyebrow">LIVE ΑΝΑΦΟΡΑ</div><h1>Επισκόπηση ημέρας</h1><p>Σύνοψη πωλήσεων και εισπράξεων από τη SQL Server.</p></div></section><p>Φόρτωση στοιχείων…</p>';
+ try{
+  const r=await apiRequest("/api/reports/daily");
+  const channels=(r.channels||[]).map(x=>'<div class="report-row"><span>'+({Table:"Τραπέζια",TakeAway:"Take Away",Delivery:"Delivery"}[x.channel]||x.channel)+'</span><b>'+x.orders+' παραγγελίες · '+money(Number(x.sales))+'</b></div>').join("")||'<p>Δεν υπάρχουν παραγγελίες σήμερα.</p>';
+  const methods=(r.paymentMethods||[]).map(x=>'<div class="report-row"><span>'+({Cash:"Μετρητά",Card:"Κάρτα",BankTransfer:"Τραπεζική μεταφορά",Other:"Άλλο"}[x.method]||x.method)+'</span><b>'+money(Number(x.amount))+'</b></div>').join("")||'<p>Δεν έχουν καταχωριστεί πληρωμές σήμερα.</p>';
+  host.innerHTML='<section class="page-heading"><div><div class="eyebrow">LIVE ΑΝΑΦΟΡΑ · '+r.date+'</div><h1>Επισκόπηση ημέρας</h1><p>Πραγματικά στοιχεία από τη SQL Server.</p></div><button class="secondary-button" id="refreshDailyReport">Ανανέωση</button></section><section class="stats-grid" aria-label="Στατιστικά ημέρας"><article class="stat-card"><div class="stat-top"><span>ΚΑΘΑΡΕΣ ΠΩΛΗΣΕΙΣ</span><span class="stat-icon green">€</span></div><div class="stat-value">'+money(Number(r.sales))+'</div><div class="stat-foot">Μετά τις εκπτώσεις</div></article><article class="stat-card"><div class="stat-top"><span>ΠΑΡΑΓΓΕΛΙΕΣ</span><span class="stat-icon mint">≋</span></div><div class="stat-value">'+r.orderCount+'</div><div class="stat-foot">Σήμερα</div></article><article class="stat-card"><div class="stat-top"><span>ΜΕΣΗ ΠΑΡΑΓΓΕΛΙΑ</span><span class="stat-icon sand">◷</span></div><div class="stat-value">'+money(Number(r.averageOrder))+'</div><div class="stat-foot">Ανά παραγγελία</div></article><article class="stat-card"><div class="stat-top"><span>ΕΙΣΠΡΑΞΕΙΣ ΣΗΜΕΡΑ</span><span class="stat-icon blue">✓</span></div><div class="stat-value">'+money(Number(r.paidToday))+'</div><div class="stat-foot">Ανεξάρτητα από ημερομηνία παραγγελίας</div></article></section><section class="report-grid"><article class="stat-card"><h3>Πωλήσεις ανά κανάλι</h3>'+channels+'</article><article class="stat-card"><h3>Πληρωμές ανά τρόπο</h3>'+methods+'</article></section><section class="stats-grid"><article class="stat-card"><div class="stat-top"><span>ΕΚΠΤΩΣΕΙΣ</span></div><div class="stat-value">'+money(Number(r.discounts))+'</div></article><article class="stat-card"><div class="stat-top"><span>ΕΝΕΡΓΑ ΤΡΑΠΕΖΙΑ</span></div><div class="stat-value">'+r.activeTables+'</div></article></section>';
+  document.querySelector("#refreshDailyReport")?.addEventListener("click",()=>void renderDashboard());
+ }catch(e){host.innerHTML='<section class="page-heading"><div><h1>Επισκόπηση ημέρας</h1><p>'+e.message+'</p><button class="secondary-button" id="retryDailyReport">Προσπάθεια ξανά</button></div></section>';document.querySelector("#retryDailyReport")?.addEventListener("click",()=>void renderDashboard());}
+}
 function renderBoard(){
  const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes";
  document.querySelector("#recipesManagement").hidden=!recipesView;
@@ -172,7 +184,7 @@ function renderBoard(){
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView;
  document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView;
  grid.hidden=dashboard||itemsView||inventoryView||recipesView;summary.hidden=dashboard||itemsView||inventoryView||recipesView;help.hidden=dashboard||itemsView||inventoryView||recipesView;
- if(dashboard||itemsView||inventoryView||recipesView){if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();return;}
+ if(dashboard||itemsView||inventoryView||recipesView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
