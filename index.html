@@ -31,7 +31,7 @@
         <a class="nav-item" href="#items" data-view="items"><span class="nav-icon">◇</span> Είδη &amp; Τιμές</a>
         <a class="nav-item" href="#inventory" data-view="inventory"><span class="nav-icon">▥</span> Αποθήκη</a>
         <a class="nav-item" href="#suppliers" data-view="suppliers"><span class="nav-icon">♧</span> Προμηθευτές</a>
-        <a class="nav-item" href="#recipes" data-view="recipes"><span class="nav-icon">♧</span> Συνταγές &amp; Κοστολόγηση</a><a class="nav-item" href="#customers" data-view="customers"><span class="nav-icon">♧</span> Πελάτες</a>
+        <a class="nav-item" href="#recipes" data-view="recipes"><span class="nav-icon">♧</span> Συνταγές &amp; Κοστολόγηση</a><a class="nav-item" href="#customers" data-view="customers"><span class="nav-icon">♧</span> Πελάτες</a><a class="nav-item" href="#staff" data-view="staff"><span class="nav-icon">♙</span> Προσωπικό</a>
         <a class="nav-item muted" href="#reports"><span class="nav-icon">▧</span> Αναφορές</a>
       </nav>
       <div class="sidebar-bottom">
@@ -98,6 +98,7 @@
  <div class="items-toolbar"><input id="recipeSearch" type="search" placeholder="Αναζήτηση συνταγής..."><span id="recipeCount"></span></div>
  <div class="items-table-wrap"><table class="items-table"><thead><tr><th>Είδος πώλησης</th><th>Υλικά</th><th>Κόστος μερίδας</th><th>Τιμή πώλησης</th><th>Μικτό περιθώριο</th><th>Ενέργειες</th></tr></thead><tbody id="recipeTableBody"></tbody></table></div>
 </section>
+<section class="items-management" id="staffManagement" hidden><div class="items-page-heading"><div><div class="eyebrow">ΟΜΑΔΑ ΚΑΤΑΣΤΗΜΑΤΟΣ</div><h2>Προσωπικό</h2><p>Διαχείριση λογαριασμών, ρόλων και πρόσβασης.</p></div><button class="primary-button" id="addStaffButton">＋ Νέος χρήστης</button></div><div class="items-toolbar"><input id="staffSearch" type="search" placeholder="Αναζήτηση ονόματος ή χρήστη..."><span id="staffCount"></span></div><div class="items-table-wrap"><table class="items-table"><thead><tr><th>Ονοματεπώνυμο</th><th>Όνομα χρήστη</th><th>Ρόλος</th><th>Κατάσταση</th><th>Ενέργειες</th></tr></thead><tbody id="staffTableBody"></tbody></table></div></section>
 <footer class="footer"><span>© 2026 PANATHINAIKON ERP</span><span>Έκδοση 0.1.0 · Demo περιβάλλον</span></footer>
     </main>
   </div>
@@ -114,6 +115,7 @@
     </section>
   </div>
   <div class="modal-backdrop" id="receiptModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">DEMO ΕΚΔΟΣΗ</div><h2>Απόδειξη</h2></div><button class="modal-close" type="button" id="closeReceiptModal">×</button></div><p id="receiptText">Η έκδοση απόδειξης θα συνδεθεί με τον φορολογικό μηχανισμό στο επόμενο στάδιο.</p><button class="primary-button" type="button" id="receiptOk">Εντάξει</button></section></div>
+<div class="modal-backdrop" id="staffModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΠΡΟΣΒΑΣΗΣ</div><h2 id="staffModalTitle">Νέος χρήστης</h2><p>Δημιουργία λογαριασμού καταστήματος.</p></div><button class="modal-close" type="button" id="closeStaffModal">×</button></div><form id="staffForm"><label>Ονοματεπώνυμο<input id="staffDisplayName" required maxlength="160"></label><label>Όνομα χρήστη<input id="staffUsername" required maxlength="80"></label><label>Ρόλος<select id="staffRole"><option value="Staff">Υπάλληλος</option><option value="Manager">Υπεύθυνος</option><option value="Admin">Διαχειριστής</option></select></label><label id="staffPasswordLabel">Προσωρινός κωδικός<input id="staffPassword" type="password" minlength="12"></label><p id="staffFormError" role="alert"></p><button class="primary-button" type="submit">Αποθήκευση</button></form></section></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
