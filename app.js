@@ -63,7 +63,7 @@ async function addOrEditItem(index=null){
  const price=Number(raw.replace(",", "."));if(!Number.isFinite(price)||price<0){showToast("Μη έγκυρη τιμή.");return;}
  const duplicate=menu.some((item,i)=>i!==index&&item.name.toLocaleLowerCase("el")===cleanName.toLocaleLowerCase("el"));
  if(duplicate){showToast("Υπάρχει ήδη είδος με αυτή την ονομασία.");return;}
- if(index===null)menu.push({name:cleanName,category:cleanCategory,price});else menu[index]={name:cleanName,category:cleanCategory,price};
+ if(apiConfig.connected){try{let category=apiConfig.categories.find(x=>x.name.toLocaleLowerCase("el")===cleanCategory.toLocaleLowerCase("el"));if(!category)category=await apiRequest("/api/categories",{method:"POST",body:JSON.stringify({name:cleanCategory})});const payload={name:cleanName,price,code:current.code||null,categoryId:category.id};if(index===null)await apiRequest("/api/items",{method:"POST",body:JSON.stringify(payload)});else await apiRequest("/api/items/"+menu[index].id,{method:"PUT",body:JSON.stringify(payload)});await loadSqlData();showToast(index===null?"Το είδος αποθηκεύτηκε στη βάση.":"Το είδος ενημερώθηκε στη βάση.");}catch(e){showToast(e.message);}return;}if(index===null)menu.push({name:cleanName,category:cleanCategory,price});else menu[index]={name:cleanName,category:cleanCategory,price};
  saveMenu();renderItems();if(activeBoard==="takeaway")renderTakeaway();showToast(index===null?"Το είδος προστέθηκε.":"Το είδος ενημερώθηκε.");
 }
 document.querySelector("#addItemButton").addEventListener("click",()=>addOrEditItem());
