@@ -81,4 +81,7 @@ app.Run();
 public sealed record LoginRequest(string Username,string Password);
 public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
 public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);
-\npublic sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);\npublic sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);\npublic sealed record UpdateOrderStatusRequest(string Status);\n
+
+public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
+public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);
+public sealed record UpdateOrderStatusRequest(string Status);
