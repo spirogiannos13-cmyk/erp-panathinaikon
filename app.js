@@ -174,17 +174,34 @@ async function renderDashboard(){
   document.querySelector("#refreshDailyReport")?.addEventListener("click",()=>void renderDashboard());
  }catch(e){host.innerHTML='<section class="page-heading"><div><h1>Επισκόπηση ημέρας</h1><p>'+e.message+'</p><button class="secondary-button" id="retryDailyReport">Προσπάθεια ξανά</button></div></section>';document.querySelector("#retryDailyReport")?.addEventListener("click",()=>void renderDashboard());}
 }
-function renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes";
+
+function renderOrdersHistory(){
+ const host=document.querySelector("#ordersManagement");if(!host)return;
+ if(!apiConfig.connected){host.innerHTML='<div class="items-page-heading"><div><div class="eyebrow">ΤΑΜΕΙΟ</div><h2>Ιστορικό παραγγελιών</h2><p>Συνδέσου στη SQL Server για να δεις τις αποθηκευμένες παραγγελίες.</p></div></div>';return;}
+ const rows=apiConfig.orders||[];
+ const query=(document.querySelector("#orderHistorySearch")?.value||"").trim().toLocaleLowerCase("el");
+ const filtered=rows.filter(o=>(o.orderNumber+" "+(o.customerName||"")+" "+(o.channel||"")+" "+(o.status||"")).toLocaleLowerCase("el").includes(query));
+ const channel={Table:"Τραπέζι",TakeAway:"Take Away",Delivery:"Delivery"},status={Open:"Ανοιχτή",New:"Νέα",Preparing:"Σε προετοιμασία",Ready:"Έτοιμη",Dispatched:"Σε διανομή",Delivered:"Ολοκληρώθηκε",Cancelled:"Ακυρώθηκε"};
+ host.innerHTML='<div class="items-page-heading"><div><div class="eyebrow">ΤΑΜΕΙΟ · SQL SERVER</div><h2>Ιστορικό παραγγελιών</h2><p>Όλες οι ροές σε μία λίστα, με εισπράξεις και ανεξόφλητα υπόλοιπα.</p></div><button class="secondary-button" id="refreshOrderHistory">Ανανέωση</button></div><div class="items-toolbar"><input id="orderHistorySearch" type="search" placeholder="Αναζήτηση αριθμού, πελάτη ή καναλιού..." value="'+query.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"><span>'+filtered.length+' / '+rows.length+' παραγγελίες</span></div><div class="items-table-wrap"><table class="items-table order-history-table"><thead><tr><th>Αριθμός / Ημερομηνία</th><th>Κανάλι</th><th>Πελάτης</th><th>Κατάσταση</th><th>Σύνολο</th><th>Πληρώθηκε</th><th>Υπόλοιπο</th><th>Ενέργειες</th></tr></thead><tbody>'+filtered.map(o=>{const total=Number(o.total)||0,paid=Number(o.paidAmount)||0,balance=Math.max(0,total-paid);return '<tr><td><strong>'+o.orderNumber+'</strong><small>'+new Date(o.createdAtUtc).toLocaleString("el-GR")+'</small></td><td>'+ (channel[o.channel]||o.channel)+'</td><td>'+(o.customerName||"—")+'</td><td><span class="order-history-status">'+(status[o.status]||o.status)+'</span></td><td>'+money(total)+'</td><td>'+money(paid)+'</td><td><strong>'+money(balance)+'</strong></td><td><button class="item-edit-button" data-order-detail="'+o.id+'">Λεπτομέρειες</button>'+(balance>0&&o.status!=="Cancelled"?'<button class="item-edit-button" data-history-payment="'+o.id+'">Πληρωμή</button>':"")+'</td></tr>';}).join("")+'</tbody></table></div><div id="orderHistoryDetail" class="order-history-detail" hidden></div>';
+ document.querySelector("#orderHistorySearch").addEventListener("input",()=>{const value=document.querySelector("#orderHistorySearch").value;renderOrdersHistory();const input=document.querySelector("#orderHistorySearch");input.focus();input.setSelectionRange(value.length,value.length);});
+ document.querySelector("#refreshOrderHistory").addEventListener("click",()=>void loadSqlData().then(renderOrdersHistory).catch(e=>showToast(e.message)));
+ host.querySelector("tbody").addEventListener("click",async event=>{
+  const detail=event.target.closest("[data-order-detail]");if(detail){const id=Number(detail.dataset.orderDetail),panel=document.querySelector("#orderHistoryDetail");try{const [order,payments]=await Promise.all([apiRequest("/api/orders/"+id),apiRequest("/api/orders/"+id+"/payments")]);panel.hidden=false;panel.innerHTML='<h3>'+order.orderNumber+' · '+(channel[order.channel]||order.channel)+'</h3><p>'+(order.customer?.name||"Χωρίς στοιχεία πελάτη")+' · '+(order.customer?.phone||"—")+'</p><div class="order-history-lines">'+order.lines.map(line=>'<div><span>'+line.quantity+' × '+line.itemNameSnapshot+'</span><b>'+money(Number(line.lineTotal))+'</b></div>').join("")+'</div><h4>Πληρωμές</h4>'+(payments.length?payments.map(p=>'<div class="order-history-lines"><span>'+({Cash:"Μετρητά",Card:"Κάρτα",BankTransfer:"Τραπεζική μεταφορά",Other:"Άλλο"}[p.method]||p.method)+' · '+new Date(p.paidAtUtc).toLocaleString("el-GR")+'</span><b>'+money(Number(p.amount))+'</b></div>').join(""):'<p>Δεν έχουν καταχωριστεί πληρωμές.</p>');}catch(e){showToast(e.message);}return;}
+  const pay=event.target.closest("[data-history-payment]");if(pay){const order=rows.find(o=>o.id===Number(pay.dataset.historyPayment));if(!order)return;const balance=Math.max(0,Number(order.total)-Number(order.paidAmount||0));const raw=prompt("Ποσό πληρωμής (€). Υπόλοιπο: "+money(balance),balance.toFixed(2).replace(".",","));if(raw===null)return;const amount=Number(raw.replace(",","."));if(!Number.isFinite(amount)||amount<=0){showToast("Μη έγκυρο ποσό.");return;}const choice=prompt("Τρόπος πληρωμής: 1 Μετρητά, 2 Κάρτα, 3 Τραπεζική μεταφορά, 4 Άλλο","1");if(choice===null)return;const method=({"1":"Cash","2":"Card","3":"BankTransfer","4":"Other"})[choice.trim()];if(!method){showToast("Μη έγκυρος τρόπος πληρωμής.");return;}try{await apiRequest("/api/orders/"+order.id+"/payments",{method:"POST",body:JSON.stringify({amount,method})});await loadSqlData();renderOrdersHistory();showToast("Η πληρωμή καταχωρίστηκε.");}catch(e){showToast(e.message);}}
+ });
+}
+\nfunction renderBoard(){
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes",ordersView=activeBoard==="orders";
  document.querySelector("#recipesManagement").hidden=!recipesView;
+ document.querySelector("#ordersManagement").hidden=!ordersView;
  document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
- document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView;
+ document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView;
  document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView;
  grid.hidden=dashboard||itemsView||inventoryView||recipesView;summary.hidden=dashboard||itemsView||inventoryView||recipesView;help.hidden=dashboard||itemsView||inventoryView||recipesView;
- if(dashboard||itemsView||inventoryView||recipesView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();return;}
+ if(dashboard||itemsView||inventoryView||recipesView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
