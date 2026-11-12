@@ -108,7 +108,12 @@ api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext 
  var items=await db.SaleItems.Where(x=>x.StoreId==sid&&x.IsActive&&ids.Contains(x.Id)).ToDictionaryAsync(x=>x.Id);
  if(items.Count!=ids.Length)return Results.BadRequest(new{message="One or more items are unavailable."});
  Customer? customer=null;
- if(!string.IsNullOrWhiteSpace(q.Phone)){customer=await db.Customers.FirstOrDefaultAsync(x=>x.StoreId==sid&&x.Phone==q.Phone.Trim());}
+ if(q.CustomerId.HasValue){
+  customer=await db.Customers.SingleOrDefaultAsync(x=>x.Id==q.CustomerId.Value&&x.StoreId==sid);
+  if(customer is null)return Results.BadRequest(new{message="Ο επιλεγμένος πελάτης δεν υπάρχει."});
+ }else if(!string.IsNullOrWhiteSpace(q.Phone)){
+  customer=await db.Customers.FirstOrDefaultAsync(x=>x.StoreId==sid&&x.Phone==q.Phone.Trim());
+ }
  if(customer is null&&!string.IsNullOrWhiteSpace(q.CustomerName)){customer=new Customer{StoreId=sid,Name=q.CustomerName.Trim(),Phone=string.IsNullOrWhiteSpace(q.Phone)?null:q.Phone.Trim(),Address=string.IsNullOrWhiteSpace(q.Address)?null:q.Address.Trim()};db.Customers.Add(customer);}
  else if(customer is not null){if(!string.IsNullOrWhiteSpace(q.CustomerName))customer.Name=q.CustomerName.Trim();if(!string.IsNullOrWhiteSpace(q.Address))customer.Address=q.Address.Trim();}
  if(customer is not null)await db.SaveChangesAsync();
@@ -190,7 +195,7 @@ public sealed record RecipeIngredientRequest(int StockItemId,decimal Quantity,de
 public sealed record RecipeRequest(int SaleItemId,decimal SalePriceSnapshot,List<RecipeIngredientRequest> Ingredients);
 
 public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
-public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);
+public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines,int? CustomerId=null);
 public sealed record UpdateOrderStatusRequest(string Status);
 
 public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
