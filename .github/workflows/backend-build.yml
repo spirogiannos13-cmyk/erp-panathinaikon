@@ -4,12 +4,12 @@ on:
     paths:
       - "backend/**"
       - "app.js"
-      - "app.js"
       - ".github/workflows/backend-build.yml"
   push:
     branches: [main]
     paths:
       - "backend/**"
+      - "app.js"
       - ".github/workflows/backend-build.yml"
 jobs:
   build:
