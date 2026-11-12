@@ -39,7 +39,7 @@ app.MapPost("/api/auth/login",async(LoginRequest q,AppDbContext db,IPasswordHash
 var api=app.MapGroup("/api").RequireAuthorization();
 api.MapGet("/stores/current",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Stores.Where(x=>x.Id==sid).Select(x=>new{x.Id,x.Name,x.Code}).SingleAsync();});
 
-api.MapGet("/categories",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Categories.AsNoTracking().Where(x=>x.StoreId==sid).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name}).ToListAsync();});
+api.MapPost("/categories",async(CreateCategoryRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var name=q.Name.Trim();if(string.IsNullOrWhiteSpace(name))return Results.BadRequest();var category=await db.Categories.SingleOrDefaultAsync(x=>x.StoreId==sid&&x.Name==name);if(category is null){category=new ItemCategory{StoreId=sid,Name=name};db.Categories.Add(category);await db.SaveChangesAsync();}return Results.Ok(new{category.Id,category.Name});});\napi.MapGet("/categories",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Categories.AsNoTracking().Where(x=>x.StoreId==sid).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name}).ToListAsync();});
 api.MapPut("/items/{id:int}",async(int id,CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(string.IsNullOrWhiteSpace(q.Name)||q.Price<0)return Results.BadRequest();var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(item is null)return Results.NotFound();if(q.CategoryId.HasValue&&!await db.Categories.AnyAsync(x=>x.Id==q.CategoryId&&x.StoreId==sid))return Results.BadRequest(new{message="Invalid category."});item.Name=q.Name.Trim();item.Price=q.Price;item.CategoryId=q.CategoryId;item.UpdatedAtUtc=DateTime.UtcNow;await db.SaveChangesAsync();return Results.Ok(new{item.Id,item.Code,item.Name,item.Price,item.CategoryId});});
 api.MapDelete("/items/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(item is null)return Results.NotFound();item.IsActive=false;await db.SaveChangesAsync();return Results.NoContent();});
 api.MapGet("/items",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.SaleItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Price,x.CategoryId,CategoryName=x.Category==null?null:x.Category.Name}).ToListAsync();});
@@ -84,7 +84,7 @@ api.MapPatch("/orders/{id:int}/status",async(int id,UpdateOrderStatusRequest q,C
 app.Run();
 public sealed record LoginRequest(string Username,string Password);
 public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
-public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);
+public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);\npublic sealed record CreateCategoryRequest(string Name);
 
 public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
 public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);
