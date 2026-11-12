@@ -128,3 +128,44 @@ body.dark .inventory-kpi b{color:#e7eee8}
 .recipe-margin{display:inline-flex;padding:5px 8px;border-radius:20px;font-size:9px;font-weight:700}.recipe-margin.positive{background:#eaf4ed;color:#47845a}.recipe-margin.negative{background:#fbefea;color:#b36a4e}
 body.dark .recipe-kpi b{color:#e7eee8}
 @media(max-width:650px){.recipe-kpis{grid-template-columns:1fr}.recipes-management .items-table{min-width:850px}}
+
+/* Cashier / floor plan / delivery spatial layout — preserve Minimal Green theme */
+.floorplan-grid{display:flex;align-items:flex-start;justify-content:flex-start;gap:18px;flex-wrap:wrap;min-height:430px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.table-tile,.table-service-tile{width:76px;min-height:94px;flex:none;align-items:center;justify-content:flex-start;text-align:center;padding:9px 5px;gap:6px;border-radius:10px}
+.table-tile:before{display:none}.table-tile .table-symbol,.table-service-tile .table-symbol{font-size:25px;color:var(--green)}
+.table-tile>strong,.table-service-tile>strong{font:700 12px Manrope,sans-serif;color:var(--deep)}
+.table-tile>small,.table-service-tile>small{font-size:8px;color:#87938b}
+.table-tile .table-account{font-size:9px;color:var(--green);font-weight:700}
+.table-tile.free .table-symbol{color:#62a77b}.table-tile.busy .table-symbol{color:#c78c4d}.table-tile.reserved .table-symbol{color:#829bc0}
+.table-service-tile{display:flex;flex-direction:column;cursor:pointer;background:var(--canvas);border:1px solid var(--line);color:inherit}
+.takeaway-layout{grid-template-columns:minmax(310px,.92fr) minmax(0,1.45fr);align-items:stretch}
+.cashier-ticket{grid-column:1;grid-row:1;min-width:0;display:flex;flex-direction:column}
+.cashier-catalog{grid-column:2;grid-row:1;min-width:0}
+.cashier-ticket-head{display:grid;grid-template-columns:42px minmax(0,1fr) 64px 64px;gap:6px;padding:10px 7px;margin-top:14px;background:var(--canvas);border-block:1px solid var(--line);font-size:8px;font-weight:700;color:#87938b}
+.cashier-ticket .cart-items{flex:1;max-height:none;min-height:190px}
+.cashier-ticket .cart-row{grid-template-columns:minmax(0,1fr) auto auto;align-items:center}
+.cashier-order-meta{display:grid;gap:9px;padding:12px 0;border-top:1px solid var(--line)}
+.cashier-order-meta label{display:grid;gap:5px;font-size:9px;font-weight:700;color:#738177}
+.cashier-order-meta input,.cashier-order-meta textarea{width:100%;border:1px solid var(--line);border-radius:7px;background:var(--canvas);color:inherit;padding:9px;font:400 10px "DM Sans",sans-serif}
+.cashier-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:15px 0}
+.cashier-categories .category-tab{border-radius:8px;min-height:42px;font-weight:700}
+.cashier-catalog .product-search{margin-bottom:12px}
+.cashier-product-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-content:start}
+.cashier-product-grid .product-button{min-height:100px;padding:11px;border-radius:9px}
+.cashier-product-grid .product-button .product-info strong{font-size:11px}
+.cashier-product-grid .product-button .product-info b{font-size:12px}
+.cashier-product-grid .add-product{margin-left:auto;width:27px;height:27px;padding:0}
+.delivery-board{display:grid;gap:16px}
+.delivery-list-section{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.delivery-list-section h3{margin:0;padding:13px 15px;color:var(--deep);font:700 12px Manrope,sans-serif;border-bottom:1px solid var(--line)}
+.delivery-list-head,.delivery-row{display:grid;grid-template-columns:.75fr 1.2fr .9fr 1.25fr .95fr .55fr .7fr 1.1fr;gap:9px;align-items:center;padding:11px 13px}
+.delivery-list-head{background:var(--canvas);font-size:8px;font-weight:700;color:#87938b}
+.delivery-row{border-top:1px solid var(--line);font-size:9px;color:#68766d}
+.delivery-row>strong{color:var(--deep);font:700 11px Manrope,sans-serif}
+.delivery-row-customer{font-weight:600}
+.delivery-row .delivery-card-actions{margin:0;justify-content:flex-start}
+.delivery-row .primary-button,.delivery-row .secondary-button{height:29px;padding:0 8px;font-size:8px;white-space:nowrap}
+.delivery-empty{padding:16px;color:#87938b;font-size:10px}
+body.dark .table-tile>strong,body.dark .table-service-tile>strong,body.dark .delivery-list-section h3,body.dark .delivery-row>strong{color:#e7eee8}
+@media(max-width:1050px){.takeaway-layout{grid-template-columns:1fr}.cashier-ticket,.cashier-catalog{grid-column:1;grid-row:auto}.cashier-ticket{order:2}.cashier-catalog{order:1}.delivery-list-section{overflow-x:auto}.delivery-list-head,.delivery-row{min-width:950px}}
+@media(max-width:700px){.floorplan-grid{min-height:300px;gap:9px}.table-tile,.table-service-tile{width:68px;min-height:86px}.cashier-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cashier-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}
