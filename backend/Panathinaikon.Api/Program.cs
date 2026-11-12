@@ -66,6 +66,33 @@ api.MapGet("/reports/daily",async(ClaimsPrincipal u,AppDbContext db)=>{
  var channels=orders.GroupBy(x=>x.Channel).Select(g=>new{Channel=g.Key,Orders=g.Count(),Sales=g.Sum(x=>x.Total)}).ToList();
  return Results.Ok(new{Date=start.ToString("yyyy-MM-dd"),OrderCount=orders.Count,Sales=orders.Sum(x=>x.Total),Discounts=orders.Sum(x=>x.DiscountAmount),AverageOrder=orders.Count==0?0:decimal.Round(orders.Average(x=>x.Total),2),PaidToday=paid.Sum(x=>x.Amount),Outstanding=orders.Sum(x=>x.Total)-await db.OrderPayments.Where(x=>x.StoreId==sid&&orders.Select(o=>o.Id).Contains(x.SalesOrderId)).SumAsync(x=>(decimal?)x.Amount)??0m,ActiveTables=activeTables,Channels=channels,PaymentMethods=paymentMethods});
 });
+
+api.MapGet("/customers",async(ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ return await db.Customers.AsNoTracking().Where(x=>x.StoreId==sid).OrderBy(x=>x.Name).Select(x=>new{
+  x.Id,x.Name,x.Phone,x.Address,
+  OrderCount=db.Orders.Count(o=>o.StoreId==sid&&o.CustomerId==x.Id),
+  TotalSpent=db.Orders.Where(o=>o.StoreId==sid&&o.CustomerId==x.Id&&o.Status!="Cancelled").Sum(o=>(decimal?)o.Total)??0m
+ }).ToListAsync();
+});
+api.MapPost("/customers",async(CreateCustomerRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(string.IsNullOrWhiteSpace(q.Name)||q.Name.Trim().Length>160||q.Phone?.Length>40||q.Address?.Length>300)return Results.BadRequest(new{message="Συμπλήρωσε έγκυρο όνομα, τηλέφωνο και διεύθυνση."});
+ var phone=string.IsNullOrWhiteSpace(q.Phone)?null:q.Phone.Trim();
+ if(phone is not null&&await db.Customers.AnyAsync(x=>x.StoreId==sid&&x.Phone==phone))return Results.Conflict(new{message="Υπάρχει ήδη πελάτης με αυτό το τηλέφωνο."});
+ var customer=new Customer{StoreId=sid,Name=q.Name.Trim(),Phone=phone,Address=string.IsNullOrWhiteSpace(q.Address)?null:q.Address.Trim()};
+ db.Customers.Add(customer);await db.SaveChangesAsync();
+ return Results.Created($"/api/customers/{customer.Id}",new{customer.Id,customer.Name,customer.Phone,customer.Address});
+});
+api.MapPut("/customers/{id:int}",async(int id,CreateCustomerRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(string.IsNullOrWhiteSpace(q.Name)||q.Name.Trim().Length>160||q.Phone?.Length>40||q.Address?.Length>300)return Results.BadRequest(new{message="Συμπλήρωσε έγκυρο όνομα, τηλέφωνο και διεύθυνση."});
+ var customer=await db.Customers.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(customer is null)return Results.NotFound();
+ var phone=string.IsNullOrWhiteSpace(q.Phone)?null:q.Phone.Trim();
+ if(phone is not null&&await db.Customers.AnyAsync(x=>x.StoreId==sid&&x.Id!=id&&x.Phone==phone))return Results.Conflict(new{message="Υπάρχει ήδη πελάτης με αυτό το τηλέφωνο."});
+ customer.Name=q.Name.Trim();customer.Phone=phone;customer.Address=string.IsNullOrWhiteSpace(q.Address)?null:q.Address.Trim();
+ await db.SaveChangesAsync();return Results.Ok(new{customer.Id,customer.Name,customer.Phone,customer.Address});
+});
 api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc,CustomerName=x.Customer==null?null:x.Customer.Name,Phone=x.Customer==null?null:x.Customer.Phone,Address=x.Customer==null?null:x.Customer.Address,PaidAmount=db.OrderPayments.Where(p=>p.StoreId==sid&&p.SalesOrderId==x.Id).Sum(p=>(decimal?)p.Amount)??0m}).Take(100).ToListAsync();});
 
 api.MapGet("/orders/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.AsNoTracking().Include(x=>x.Customer).Include(x=>x.Lines).Where(x=>x.Id==id&&x.StoreId==sid).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.Notes,x.CreatedAtUtc,Customer=x.Customer==null?null:new{x.Customer.Name,x.Customer.Phone,x.Customer.Address},Lines=x.Lines.Select(l=>new{l.Id,l.SaleItemId,l.ItemNameSnapshot,l.UnitPrice,l.Quantity,l.LineTotal})}).SingleOrDefaultAsync();return order is null?Results.NotFound():Results.Ok(order);});
@@ -167,3 +194,5 @@ public sealed record CreateOrderRequest(string Channel,int? TableId,string? Cust
 public sealed record UpdateOrderStatusRequest(string Status);
 
 public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
+
+public sealed record CreateCustomerRequest(string Name,string? Phone,string? Address);
