@@ -30,6 +30,7 @@
       <nav class="main-nav" aria-label="Διαχείριση">
         <a class="nav-item" href="#items" data-view="items"><span class="nav-icon">◇</span> Είδη &amp; Τιμές</a>
         <a class="nav-item" href="#inventory" data-view="inventory"><span class="nav-icon">▥</span> Αποθήκη</a>
+        <a class="nav-item" href="#suppliers" data-view="suppliers"><span class="nav-icon">♧</span> Προμηθευτές</a>
         <a class="nav-item" href="#recipes" data-view="recipes"><span class="nav-icon">♧</span> Συνταγές &amp; Κοστολόγηση</a><a class="nav-item" href="#customers" data-view="customers"><span class="nav-icon">♧</span> Πελάτες</a>
         <a class="nav-item muted" href="#reports"><span class="nav-icon">▧</span> Αναφορές</a>
       </nav>
@@ -85,6 +86,11 @@
   <div class="inventory-kpis" id="inventoryKpis"></div>
   <div class="items-toolbar"><input id="stockSearch" type="search" placeholder="Αναζήτηση υλικού..."><span id="stockCount"></span></div>
   <div class="items-table-wrap"><table class="items-table"><thead><tr><th>Υλικό</th><th>Κατηγορία</th><th>Διαθέσιμο</th><th>Όριο ασφαλείας</th><th>Κατάσταση</th><th>Κινήσεις</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+</section>
+<section class="items-management" id="suppliersManagement" hidden>
+ <div class="items-page-heading"><div><div class="eyebrow">ΑΓΟΡΕΣ</div><h2>Προμηθευτές</h2><p>Κεντρική διαχείριση στοιχείων και επαφών προμηθευτών.</p></div><button class="primary-button" id="addSupplierButton">＋ Νέος προμηθευτής</button></div>
+ <div class="items-toolbar"><input id="suppliersSearch" type="search" placeholder="Αναζήτηση προμηθευτή..."><span id="suppliersCount"></span></div>
+ <div class="items-table-wrap"><table class="items-table"><thead><tr><th>Επωνυμία</th><th>Υπεύθυνος</th><th>Τηλέφωνο</th><th>Email</th><th>ΑΦΜ</th><th>Ενέργειες</th></tr></thead><tbody id="suppliersTableBody"></tbody></table></div>
 </section>
 <section class="items-management recipes-management" id="recipesManagement" hidden>
  <div class="items-page-heading"><div><div class="eyebrow">ΠΑΡΑΓΩΓΗ</div><h2>Συνταγές &amp; Κοστολόγηση</h2><p>Σύνδεσε τα είδη πώλησης με τα υλικά της αποθήκης και υπολόγισε κόστος και περιθώριο.</p></div><button class="primary-button" id="addRecipeButton">＋ Νέα συνταγή</button></div>
