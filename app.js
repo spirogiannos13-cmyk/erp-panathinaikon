@@ -191,18 +191,46 @@ function renderOrdersHistory(){
  });
 }
 
+
+async function renderCustomers(){
+ const host=document.querySelector("#customersManagement");if(!host)return;
+ if(!apiConfig.connected){host.querySelector("#customersTableBody").innerHTML='<tr><td colspan="6">Συνδέσου στη SQL Server για να διαχειριστείς πελάτες.</td></tr>';return;}
+ try{
+  const customers=await apiRequest("/api/customers");
+  const search=(host.querySelector("#customersSearch")?.value||"").trim().toLocaleLowerCase("el");
+  const filtered=customers.filter(c=>(c.name+" "+(c.phone||"")+" "+(c.address||"")).toLocaleLowerCase("el").includes(search));
+  host.querySelector("#customersCount").textContent=filtered.length+" / "+customers.length+" πελάτες";
+  host.querySelector("#customersTableBody").innerHTML=filtered.map(c=>'<tr><td><strong>'+escapeCustomerText(c.name)+'</strong></td><td>'+escapeCustomerText(c.phone||"—")+'</td><td>'+escapeCustomerText(c.address||"—")+'</td><td>'+c.orderCount+'</td><td>'+money(Number(c.totalSpent))+'</td><td><button class="item-edit-button" data-edit-customer="'+c.id+'">Επεξεργασία</button></td></tr>').join("")||'<tr><td colspan="6">Δεν βρέθηκαν πελάτες.</td></tr>';
+ }catch(e){host.querySelector("#customersTableBody").innerHTML='<tr><td colspan="6">'+escapeCustomerText(e.message)+'</td></tr>';}
+}
+function escapeCustomerText(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+async function saveCustomer(customer){
+ const name=prompt("Ονοματεπώνυμο πελάτη:",customer?.name||"");if(name===null)return;
+ const phone=prompt("Τηλέφωνο:",customer?.phone||"");if(phone===null)return;
+ const address=prompt("Διεύθυνση:",customer?.address||"");if(address===null)return;
+ if(!name.trim()){showToast("Το όνομα είναι υποχρεωτικό.");return;}
+ try{await apiRequest(customer?"/api/customers/"+customer.id:"/api/customers",{method:customer?"PUT":"POST",body:JSON.stringify({name:name.trim(),phone:phone.trim()||null,address:address.trim()||null})});await renderCustomers();showToast("Τα στοιχεία πελάτη αποθηκεύτηκαν.");}
+ catch(e){showToast(e.message);}
+}
+document.querySelector("#customersManagement").addEventListener("input",event=>{if(event.target.id==="customersSearch")void renderCustomers();});
+document.querySelector("#customersManagement").addEventListener("click",async event=>{
+ if(event.target.closest("#addCustomerButton")){await saveCustomer(null);return;}
+ const edit=event.target.closest("[data-edit-customer]");if(edit){try{const rows=await apiRequest("/api/customers");const customer=rows.find(x=>x.id===Number(edit.dataset.editCustomer));if(customer)await saveCustomer(customer);}catch(e){showToast(e.message);}}
+});
+
 function renderBoard(){
- const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes",ordersView=activeBoard==="orders";
+ const dashboard=activeBoard==="dashboard",itemsView=activeBoard==="items",inventoryView=activeBoard==="inventory",recipesView=activeBoard==="recipes",ordersView=activeBoard==="orders",customersView=activeBoard==="customers";
  document.querySelector("#recipesManagement").hidden=!recipesView;
  document.querySelector("#ordersManagement").hidden=!ordersView;
+ document.querySelector("#customersManagement").hidden=!customersView;
  document.querySelector("#inventoryManagement").hidden=!inventoryView;
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
- document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
+ document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView;
  document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
  document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
  grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
- if(dashboard||itemsView||inventoryView||recipesView||ordersView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();return;}
+ if(dashboard||itemsView||inventoryView||recipesView||ordersView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
