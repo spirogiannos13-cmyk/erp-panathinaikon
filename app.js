@@ -88,7 +88,7 @@ function renderInventory(){
  const low=stockItems.filter(x=>x.quantity<=x.min).length;
  document.querySelector("#inventoryKpis").innerHTML=`<div class="inventory-kpi"><span>ΥΛΙΚΑ</span><b>${stockItems.length}</b></div><div class="inventory-kpi"><span>ΧΑΜΗΛΟ ΑΠΟΘΕΜΑ</span><b>${low}</b></div><div class="inventory-kpi"><span>ΣΥΝΟΛΙΚΕΣ ΜΟΝΑΔΕΣ</span><b>${stockItems.reduce((s,x)=>s+x.quantity,0).toLocaleString("el-GR")}</b></div>`;
  document.querySelector("#stockCount").textContent=stockItems.length+" υλικά";
- document.querySelector("#stockTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td><b>${item.quantity} ${item.unit}</b></td><td>${item.min} ${item.unit}</td><td><span class="stock-state ${item.quantity<=item.min?"low":"ok"}">${item.quantity<=item.min?"Χαμηλό":"Επαρκές"}</span></td><td><button class="item-edit-button" data-stock-move="${item.index}">＋ / − Κίνηση</button><button class="item-delete-button" data-stock-edit="${item.index}">Επεξεργασία</button></td></tr>`).join("")||'<tr><td colspan="6" class="items-empty">Δεν βρέθηκαν υλικά.</td></tr>';
+ document.querySelector("#stockTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td><b>${item.quantity} ${item.unit}</b></td><td>${item.min} ${item.unit}</td><td><span class="stock-state ${item.quantity<=item.min?"low":"ok"}">${item.quantity<=item.min?"Χαμηλό":"Επαρκές"}</span></td><td><button class="item-edit-button" data-stock-history="${item.index}">Ιστορικό</button><button class="item-edit-button" data-stock-move="${item.index}">＋ / − Κίνηση</button><button class="item-delete-button" data-stock-edit="${item.index}">Επεξεργασία</button></td></tr>`).join("")||'<tr><td colspan="6" class="items-empty">Δεν βρέθηκαν υλικά.</td></tr>';
 }
 
 function openStockReceipt(){
@@ -126,7 +126,20 @@ async function moveStock(index){
 }
 document.querySelector("#addStockItem").addEventListener("click",createStockItem);
 document.querySelector("#stockSearch").addEventListener("input",event=>{stockSearch=event.target.value;renderInventory();});
-document.querySelector("#stockTableBody").addEventListener("click",event=>{const move=event.target.closest("[data-stock-move]");if(move){moveStock(Number(move.dataset.stockMove));return;}const edit=event.target.closest("[data-stock-edit]");if(edit)editStockItem(Number(edit.dataset.stockEdit));});
+async function showStockHistory(index){
+ const item=stockItems[index];if(!item)return;
+ if(!apiConfig.connected||!item.id){showToast("Το ιστορικό κινήσεων είναι διαθέσιμο με σύνδεση SQL Server.");return;}
+ try{
+  const rows=await apiRequest("/api/inventory/"+item.id+"/movements");
+  let modal=document.querySelector("#stockHistoryModal");
+  if(!modal){modal=document.createElement("div");modal.id="stockHistoryModal";modal.className="modal-backdrop";modal.style.zIndex="1000";document.body.append(modal);modal.addEventListener("click",e=>{if(e.target===modal||e.target.closest("[data-close-stock-history]"))modal.hidden=true;});}
+  const labels={PurchaseReceipt:"Παραλαβή προμηθειών",Receipt:"Εισαγωγή",Consumption:"Ανάλωση",OrderConsumption:"Κατανάλωση παραγγελίας",OrderReversal:"Αντιλογισμός"};
+  const entries=rows.map(row=>{const label=labels[row.movementType]||row.movementType;const amount=(row.quantityDelta>0?"+":"")+row.quantityDelta;const ref=row.reference?" · "+escapeCustomerText(row.reference):"";return '<article class="stock-history-row"><div><strong>'+escapeCustomerText(label)+'</strong><small>'+new Date(row.createdAtUtc).toLocaleString("el-GR")+ref+'</small></div><b class="'+(row.quantityDelta>=0?"stock-in":"stock-out")+'">'+amount+" "+escapeCustomerText(item.unit)+'</b></article>';}).join("");
+  modal.innerHTML='<section class="order-modal stock-history-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΑΠΟΘΗΚΗ · ΙΣΤΟΡΙΚΟ</div><h2>'+escapeCustomerText(item.name)+'</h2><p>Οι τελευταίες 100 κινήσεις αποθέματος.</p></div><button class="modal-close" type="button" data-close-stock-history>×</button></div><div class="stock-history-list">'+(entries||'<p class="items-empty">Δεν υπάρχουν κινήσεις για αυτό το υλικό.</p>')+'</div></section>';
+  modal.hidden=false;
+ }catch(error){showToast(error.message);}
+}
+document.querySelector("#stockTableBody").addEventListener("click",event=>{const history=event.target.closest("[data-stock-history]");if(history){void showStockHistory(Number(history.dataset.stockHistory));return;}const move=event.target.closest("[data-stock-move]");if(move){moveStock(Number(move.dataset.stockMove));return;}const edit=event.target.closest("[data-stock-edit]");if(edit)editStockItem(Number(edit.dataset.stockEdit));});
 
 let recipes=[];
 try{const savedRecipes=JSON.parse(localStorage.getItem("panathinaikon-recipes")||"[]");if(Array.isArray(savedRecipes))recipes=savedRecipes;}catch{}
