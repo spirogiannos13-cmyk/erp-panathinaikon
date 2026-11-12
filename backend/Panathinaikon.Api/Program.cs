@@ -44,7 +44,41 @@ api.MapGet("/tables",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Pars
 api.MapGet("/inventory",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.StockItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Category,x.Unit,x.Quantity,x.MinimumQuantity,x.UnitCost}).ToListAsync();});
 api.MapGet("/recipes",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Recipes.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).Include(x=>x.Ingredients).Select(x=>new{x.Id,x.SaleItemId,x.SalePriceSnapshot,Ingredients=x.Ingredients.Select(i=>new{i.StockItemId,i.Quantity})}).ToListAsync();});
 api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc}).Take(100).ToListAsync();});
+
+api.MapGet("/orders/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.AsNoTracking().Include(x=>x.Customer).Include(x=>x.Lines).Where(x=>x.Id==id&&x.StoreId==sid).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.Notes,x.CreatedAtUtc,Customer=x.Customer==null?null:new{x.Customer.Name,x.Customer.Phone,x.Customer.Address},Lines=x.Lines.Select(l=>new{l.Id,l.SaleItemId,l.ItemNameSnapshot,l.UnitPrice,l.Quantity,l.LineTotal})}).SingleOrDefaultAsync();return order is null?Results.NotFound():Results.Ok(order);});
+api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(q.Lines is null||q.Lines.Count==0||q.Lines.Any(x=>x.Quantity<=0)||!new[]{"Table","TakeAway","Delivery"}.Contains(q.Channel))return Results.BadRequest(new{message="A valid channel and at least one positive order line are required."});
+ if(q.Channel=="Table"&&!q.TableId.HasValue)return Results.BadRequest(new{message="A table is required for table orders."});
+ if(q.Channel=="Delivery"&&(string.IsNullOrWhiteSpace(q.Phone)||string.IsNullOrWhiteSpace(q.Address)))return Results.BadRequest(new{message="Phone and delivery address are required."});
+ await using var tx=await db.Database.BeginTransactionAsync();
+ DiningTable? table=null;
+ if(q.TableId.HasValue){table=await db.Tables.SingleOrDefaultAsync(x=>x.Id==q.TableId.Value&&x.StoreId==sid&&x.IsActive);if(table is null)return Results.BadRequest(new{message="The selected table does not exist."});if(table.Status=="Occupied")return Results.Conflict(new{message="The selected table already has an open order."});}
+ var ids=q.Lines.Select(x=>x.SaleItemId).Distinct().ToArray();
+ var items=await db.SaleItems.Where(x=>x.StoreId==sid&&x.IsActive&&ids.Contains(x.Id)).ToDictionaryAsync(x=>x.Id);
+ if(items.Count!=ids.Length)return Results.BadRequest(new{message="One or more items are unavailable."});
+ Customer? customer=null;
+ if(!string.IsNullOrWhiteSpace(q.Phone)){customer=await db.Customers.FirstOrDefaultAsync(x=>x.StoreId==sid&&x.Phone==q.Phone.Trim());}
+ if(customer is null&&!string.IsNullOrWhiteSpace(q.CustomerName)){customer=new Customer{StoreId=sid,Name=q.CustomerName.Trim(),Phone=string.IsNullOrWhiteSpace(q.Phone)?null:q.Phone.Trim(),Address=string.IsNullOrWhiteSpace(q.Address)?null:q.Address.Trim()};db.Customers.Add(customer);}
+ else if(customer is not null){if(!string.IsNullOrWhiteSpace(q.CustomerName))customer.Name=q.CustomerName.Trim();if(!string.IsNullOrWhiteSpace(q.Address))customer.Address=q.Address.Trim();}
+ if(customer is not null)await db.SaveChangesAsync();
+ var lines=q.Lines.Select(x=>{var item=items[x.SaleItemId];var unit=decimal.Round(item.Price,2);return new SalesOrderLine{SaleItemId=item.Id,ItemNameSnapshot=item.Name,UnitPrice=unit,Quantity=x.Quantity,LineTotal=decimal.Round(unit*x.Quantity,2)};}).ToList();
+ var subtotal=lines.Sum(x=>x.LineTotal);var discount=decimal.Round(Math.Clamp(q.DiscountAmount,0,subtotal),2);
+ var order=new SalesOrder{StoreId=sid,TableId=table?.Id,CustomerId=customer?.Id,OrderNumber="PA-"+DateTime.UtcNow.ToString("yyMMddHHmmss")+"-"+Guid.NewGuid().ToString("N")[..5].ToUpperInvariant(),Channel=q.Channel,Status=q.Channel=="Delivery"?"New":"Open",Subtotal=subtotal,DiscountAmount=discount,Total=subtotal-discount,Notes=q.Notes?.Trim(),Lines=lines};
+ db.Orders.Add(order);if(table is not null)table.Status="Occupied";await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Created($"/api/orders/{order.Id}",new{order.Id,order.OrderNumber,order.Channel,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
+});
+api.MapPatch("/orders/{id:int}/status",async(int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.Include(x=>x.Lines).SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(order is null)return Results.NotFound();
+ var allowed=order.Channel=="Delivery"?new[]{"New","Preparing","Ready","Dispatched","Delivered","Cancelled"}:new[]{"Open","Preparing","Closed","Cancelled"};
+ if(!allowed.Contains(q.Status))return Results.BadRequest(new{message="Invalid status for this order channel."});
+ if(order.Status=="Delivered"||order.Status=="Closed"||order.Status=="Cancelled")return Results.Conflict(new{message="This order is already finalized."});
+ order.Status=q.Status;if(q.Status is "Delivered" or "Closed" or "Cancelled")order.ClosedAtUtc=DateTime.UtcNow;
+ if(order.TableId.HasValue&&q.Status is "Closed" or "Cancelled"){var table=await db.Tables.SingleOrDefaultAsync(x=>x.Id==order.TableId&&x.StoreId==sid);if(table is not null)table.Status="Available";}
+ await db.SaveChangesAsync();return Results.Ok(new{order.Id,order.OrderNumber,order.Status,order.ClosedAtUtc});
+});
 app.Run();
 public sealed record LoginRequest(string Username,string Password);
 public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
 public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);
+\npublic sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);\npublic sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);\npublic sealed record UpdateOrderStatusRequest(string Status);\n
