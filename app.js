@@ -305,10 +305,10 @@ function renderBoard(){
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
- grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
- if(dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();if(reservationsView)void renderReservations();if(suppliersView)void renderSuppliers();return;}
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
+ grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView;
+ if(dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView||suppliersView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();if(reservationsView)void renderReservations();if(suppliersView)void renderSuppliers();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
  if(activeBoard==="takeaway"){renderTakeaway();return;}
