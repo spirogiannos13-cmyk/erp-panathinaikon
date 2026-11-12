@@ -267,9 +267,9 @@ function renderBoard(){
  document.querySelector("#itemsManagement").hidden=!itemsView;
  document.querySelector("#dashboardView").hidden=!dashboard;
  document.querySelector("#ordersHeading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
- document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
- document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
- grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView;
+ document.querySelector("#boardToolbar").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
+ document.querySelector(".section-heading").hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
+ grid.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;summary.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;help.hidden=dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView;
  if(dashboard||itemsView||inventoryView||recipesView||ordersView||customersView||reservationsView){if(dashboard)void renderDashboard();if(itemsView)renderItems();if(inventoryView)renderInventory();if(recipesView)renderRecipes();if(ordersView)renderOrdersHistory();if(customersView)void renderCustomers();if(reservationsView)void renderReservations();return;}
  const board=boards[activeBoard];title.textContent=board.title;description.textContent=board.description;
  if(activeBoard==="tables"){renderTables();return;}
