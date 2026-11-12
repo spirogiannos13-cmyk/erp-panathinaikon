@@ -57,7 +57,7 @@ api.MapDelete("/recipes/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db
 
 api.MapGet("/inventory",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.StockItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Category,x.Unit,x.Quantity,x.MinimumQuantity,x.UnitCost}).ToListAsync();});
 api.MapGet("/recipes",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var rows=await db.Recipes.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).Include(x=>x.Ingredients).OrderBy(x=>x.Id).ToListAsync();var saleIds=rows.Select(x=>x.SaleItemId).Distinct().ToArray();var stockIds=rows.SelectMany(x=>x.Ingredients).Select(x=>x.StockItemId).Distinct().ToArray();var names=await db.SaleItems.Where(x=>x.StoreId==sid&&saleIds.Contains(x.Id)).ToDictionaryAsync(x=>x.Id,x=>x.Name);var stock=await db.StockItems.Where(x=>x.StoreId==sid&&stockIds.Contains(x.Id)).ToDictionaryAsync(x=>x.Id);return rows.Select(x=>new{x.Id,x.SaleItemId,ItemName=names.GetValueOrDefault(x.SaleItemId),x.SalePriceSnapshot,Ingredients=x.Ingredients.Select(i=>new{i.StockItemId,StockName=stock.GetValueOrDefault(i.StockItemId)!.Name,Unit=stock.GetValueOrDefault(i.StockItemId)!.Unit,UnitCost=stock.GetValueOrDefault(i.StockItemId)!.UnitCost,i.Quantity})});});
-api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc,CustomerName=x.Customer==null?null:x.Customer.Name,Phone=x.Customer==null?null:x.Customer.Phone,Address=x.Customer==null?null:x.Customer.Address}).Take(100).ToListAsync();});
+api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc,CustomerName=x.Customer==null?null:x.Customer.Name,Phone=x.Customer==null?null:x.Customer.Phone,Address=x.Customer==null?null:x.Customer.Address,PaidAmount=db.OrderPayments.Where(p=>p.StoreId==sid&&p.SalesOrderId==x.Id).Sum(p=>(decimal?)p.Amount)??0m}).Take(100).ToListAsync();});
 
 api.MapGet("/orders/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.AsNoTracking().Include(x=>x.Customer).Include(x=>x.Lines).Where(x=>x.Id==id&&x.StoreId==sid).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.Notes,x.CreatedAtUtc,Customer=x.Customer==null?null:new{x.Customer.Name,x.Customer.Phone,x.Customer.Address},Lines=x.Lines.Select(l=>new{l.Id,l.SaleItemId,l.ItemNameSnapshot,l.UnitPrice,l.Quantity,l.LineTotal})}).SingleOrDefaultAsync();return order is null?Results.NotFound():Results.Ok(order);});
 api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext db)=>{
@@ -81,6 +81,21 @@ api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext 
  var order=new SalesOrder{StoreId=sid,TableId=table?.Id,CustomerId=customer?.Id,OrderNumber="PA-"+DateTime.UtcNow.ToString("yyMMddHHmmss")+"-"+Guid.NewGuid().ToString("N")[..5].ToUpperInvariant(),Channel=q.Channel,Status=q.Channel=="Delivery"?"New":"Open",Subtotal=subtotal,DiscountAmount=discount,Total=subtotal-discount,Notes=q.Notes?.Trim(),Lines=lines};
  db.Orders.Add(order);if(table is not null)table.Status="Occupied";await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{order.Id}",new{order.Id,order.OrderNumber,order.Channel,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
+});
+api.MapGet("/orders/{id:int}/payments",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(!await db.Orders.AnyAsync(x=>x.Id==id&&x.StoreId==sid))return Results.NotFound();var rows=await db.OrderPayments.AsNoTracking().Where(x=>x.StoreId==sid&&x.SalesOrderId==id).OrderBy(x=>x.PaidAtUtc).Select(x=>new{x.Id,x.Amount,x.Method,x.Reference,x.PaidAtUtc}).ToListAsync();return Results.Ok(rows);});
+api.MapPost("/orders/{id:int}/payments",async Task<IResult> (int id,CreateOrderPaymentRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);var method=q.Method?.Trim();
+ if(q.Amount<=0||method is null||!new[]{"Cash","Card","BankTransfer","Other"}.Contains(method))return Results.BadRequest(new{message="Καταχώρισε θετικό ποσό και έγκυρο τρόπο πληρωμής."});
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var order=await db.Orders.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(order is null)return Results.NotFound();
+ if(order.Status=="Cancelled")return Results.Conflict(new{message="Δεν μπορεί να καταχωριστεί πληρωμή σε ακυρωμένη παραγγελία."});
+ var paid=await db.OrderPayments.Where(x=>x.StoreId==sid&&x.SalesOrderId==id).SumAsync(x=>(decimal?)x.Amount)??0m;
+ var outstanding=order.Total-paid;
+ if(q.Amount>outstanding)return Results.Conflict(new{message=$"Το ποσό υπερβαίνει το υπόλοιπο ({outstanding:0.00} €)."});
+ var payment=new OrderPayment{StoreId=sid,SalesOrderId=id,Amount=decimal.Round(q.Amount,2),Method=method,Reference=string.IsNullOrWhiteSpace(q.Reference)?null:q.Reference.Trim()};
+ db.OrderPayments.Add(payment);await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Created($"/api/orders/{id}/payments/{payment.Id}",new{payment.Id,payment.Amount,payment.Method,payment.Reference,payment.PaidAtUtc,TotalPaid=paid+payment.Amount,Outstanding=order.Total-paid-payment.Amount});
 });
 api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);
@@ -141,3 +156,5 @@ public sealed record RecipeRequest(int SaleItemId,decimal SalePriceSnapshot,List
 public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
 public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines);
 public sealed record UpdateOrderStatusRequest(string Status);
+
+public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
