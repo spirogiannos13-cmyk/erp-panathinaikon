@@ -84,10 +84,60 @@ api.MapGet("/stores/current",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=
 
 api.MapPost("/categories",async(CreateCategoryRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var name=q.Name.Trim();if(string.IsNullOrWhiteSpace(name))return Results.BadRequest();var category=await db.Categories.SingleOrDefaultAsync(x=>x.StoreId==sid&&x.Name==name);if(category is null){category=new ItemCategory{StoreId=sid,Name=name};db.Categories.Add(category);await db.SaveChangesAsync();}return Results.Ok(new{category.Id,category.Name});});
 api.MapGet("/categories",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Categories.AsNoTracking().Where(x=>x.StoreId==sid).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name}).ToListAsync();});
-api.MapPut("/items/{id:int}",async(int id,CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(string.IsNullOrWhiteSpace(q.Name)||q.Price<0)return Results.BadRequest();var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(item is null)return Results.NotFound();if(q.CategoryId.HasValue&&!await db.Categories.AnyAsync(x=>x.Id==q.CategoryId&&x.StoreId==sid))return Results.BadRequest(new{message="Invalid category."});item.Name=q.Name.Trim();item.Price=q.Price;item.CategoryId=q.CategoryId;item.UpdatedAtUtc=DateTime.UtcNow;await db.SaveChangesAsync();return Results.Ok(new{item.Id,item.Code,item.Name,item.Price,item.CategoryId});});
-api.MapDelete("/items/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(item is null)return Results.NotFound();item.IsActive=false;await db.SaveChangesAsync();return Results.NoContent();});
-api.MapGet("/items",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.SaleItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Code,x.Name,x.Price,x.CategoryId,CategoryName=x.Category==null?null:x.Category.Name}).ToListAsync();});
-api.MapPost("/items",async(CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(string.IsNullOrWhiteSpace(q.Name)||q.Price<0)return Results.BadRequest();var item=new SaleItem{StoreId=sid,Code=string.IsNullOrWhiteSpace(q.Code)?Guid.NewGuid().ToString("N")[..12]:q.Code.Trim(),Name=q.Name.Trim(),Price=q.Price,CategoryId=q.CategoryId};db.SaleItems.Add(item);await db.SaveChangesAsync();return Results.Created($"/api/items/{item.Id}",new{item.Id,item.Code,item.Name,item.Price});});
+api.MapPut("/items/{id:int}",async(int id,CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>
+{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ var name=q.Name?.Trim()??"";
+ var code=q.Code?.Trim()??"";
+ if(string.IsNullOrWhiteSpace(name)||name.Length>160||q.Price<0||code.Length>40)
+  return Results.BadRequest(new{message="Συμπλήρωσε έγκυρη ονομασία, κωδικό έως 40 χαρακτήρες και μη αρνητική τιμή."});
+ var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(item is null)return Results.NotFound();
+ if(q.CategoryId.HasValue&&!await db.Categories.AnyAsync(x=>x.Id==q.CategoryId.Value&&x.StoreId==sid))
+  return Results.BadRequest(new{message="Η κατηγορία δεν ανήκει στο τρέχον κατάστημα."});
+ if(!string.IsNullOrWhiteSpace(code)&&await db.SaleItems.AnyAsync(x=>x.StoreId==sid&&x.Id!=id&&x.Code==code))
+  return Results.Conflict(new{message="Ο κωδικός είδους χρησιμοποιείται ήδη."});
+ item.Name=name;
+ if(!string.IsNullOrWhiteSpace(code))item.Code=code;
+ item.Price=q.Price;
+ item.CategoryId=q.CategoryId;
+ item.UpdatedAtUtc=DateTime.UtcNow;
+ await db.SaveChangesAsync();
+ return Results.Ok(new{item.Id,item.Code,item.Name,item.Price,item.CategoryId});
+});
+api.MapDelete("/items/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>
+{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ var item=await db.SaleItems.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(item is null)return Results.NotFound();
+ item.IsActive=false;
+ item.UpdatedAtUtc=DateTime.UtcNow;
+ await db.SaveChangesAsync();
+ return Results.NoContent();
+});
+api.MapGet("/items",async(ClaimsPrincipal u,AppDbContext db)=>
+{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ return await db.SaleItems.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name)
+  .Select(x=>new{x.Id,x.Code,x.Name,x.Price,x.CategoryId,CategoryName=x.Category==null?null:x.Category.Name}).ToListAsync();
+});
+api.MapPost("/items",async(CreateItemRequest q,ClaimsPrincipal u,AppDbContext db)=>
+{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ var name=q.Name?.Trim()??"";
+ var code=string.IsNullOrWhiteSpace(q.Code)?Guid.NewGuid().ToString("N")[..12]:q.Code.Trim();
+ if(string.IsNullOrWhiteSpace(name)||name.Length>160||q.Price<0||code.Length>40)
+  return Results.BadRequest(new{message="Συμπλήρωσε έγκυρη ονομασία, κωδικό έως 40 χαρακτήρες και μη αρνητική τιμή."});
+ if(q.CategoryId.HasValue&&!await db.Categories.AnyAsync(x=>x.Id==q.CategoryId.Value&&x.StoreId==sid))
+  return Results.BadRequest(new{message="Η κατηγορία δεν ανήκει στο τρέχον κατάστημα."});
+ if(await db.SaleItems.AnyAsync(x=>x.StoreId==sid&&x.Code==code))
+  return Results.Conflict(new{message="Ο κωδικός είδους χρησιμοποιείται ήδη."});
+ var item=new SaleItem{StoreId=sid,Code=code,Name=name,Price=q.Price,CategoryId=q.CategoryId};
+ db.SaleItems.Add(item);
+ await db.SaveChangesAsync();
+ return Results.Created($"/api/items/{item.Id}",new{item.Id,item.Code,item.Name,item.Price,item.CategoryId});
+});
+
 api.MapGet("/tables",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Tables.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name,x.Capacity,x.Status}).ToListAsync();});
 
 api.MapGet("/suppliers",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Suppliers.AsNoTracking().Where(x=>x.StoreId==sid&&x.IsActive).OrderBy(x=>x.Name).Select(x=>new{x.Id,x.Name,x.ContactName,x.Phone,x.Email,x.Address,x.TaxNumber,x.Notes}).ToListAsync();});
