@@ -14,7 +14,7 @@ async function apiRequest(path,options={}){const headers={"Content-Type":"applic
 function addConnectionControl(){const host=document.querySelector(".sidebar");if(!host||document.querySelector("#apiConnectButton"))return;const button=document.createElement("button");button.id="apiConnectButton";button.className="nav-item";button.type="button";button.style.cssText="width:100%;margin-top:12px;text-align:left;cursor:pointer";button.textContent=apiConfig.token?"● SQL Server":"○ Σύνδεση βάσης";host.append(button);button.addEventListener("click",()=>showApiLogin());}
 function showApiLogin(){let modal=document.querySelector("#apiLoginModal");if(!modal){modal=document.createElement("div");modal.id="apiLoginModal";modal.className="modal-backdrop";modal.style.zIndex="1000";modal.innerHTML='<section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΣΥΝΔΕΣΗ ΣΥΣΤΗΜΑΤΟΣ</div><h2>Σύνδεση SQL Server</h2><p>Σύνδεση με τον λογαριασμό διαχειριστή.</p></div><button class="modal-close" type="button" data-close-api>×</button></div><form id="apiLoginForm"><label style="display:block;margin:12px 0">Διεύθυνση API<input id="apiBaseInput" required value="'+apiConfig.base+'" placeholder="http://localhost:5000"></label><label style="display:block;margin:12px 0">Χρήστης<input id="apiUsername" required autocomplete="username"></label><label style="display:block;margin:12px 0">Κωδικός<input id="apiPassword" type="password" required autocomplete="current-password"></label><p id="apiLoginError" role="alert"></p><button class="primary-button" type="submit">Σύνδεση</button></form></section>';document.body.append(modal);modal.addEventListener("click",e=>{if(e.target===modal||e.target.closest("[data-close-api]"))modal.hidden=true;});modal.querySelector("#apiLoginForm").addEventListener("submit",loginToApi);}modal.hidden=false;modal.querySelector("#apiBaseInput").value=apiConfig.base;}
 async function loginToApi(event){event.preventDefault();const form=event.currentTarget,error=form.querySelector("#apiLoginError");apiConfig.base=form.querySelector("#apiBaseInput").value.trim().replace(/\/$/,"");localStorage.setItem("panathinaikon-api-url",apiConfig.base);error.textContent="Γίνεται σύνδεση…";try{const response=await fetch(apiConfig.base+"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:form.querySelector("#apiUsername").value,password:form.querySelector("#apiPassword").value})});if(!response.ok)throw new Error(response.status===401?"Λανθασμένος χρήστης ή κωδικός.":"Δεν ήταν δυνατή η σύνδεση στο API.");const data=await response.json();apiConfig.token=data.accessToken;localStorage.setItem("panathinaikon-api-token",apiConfig.token);await loadSqlData();document.querySelector("#apiLoginModal").hidden=true;document.querySelector("#apiConnectButton").textContent="● "+(data.user.storeName||"SQL Server");showToast("Συνδέθηκες στη βάση δεδομένων.");}catch(e){error.textContent=e.message;}}
-async function loadSqlData(){const [items,tables,orders,categories,stock,recipeRows,customers]=await Promise.all([apiRequest("/api/items"),apiRequest("/api/tables"),apiRequest("/api/orders"),apiRequest("/api/categories"),apiRequest("/api/inventory"),apiRequest("/api/recipes"),apiRequest("/api/customers")]);apiConfig.categories=categories;apiConfig.customers=customers;menu=items.map(x=>({id:x.id,categoryId:x.categoryId,name:x.name,category:x.categoryName||apiConfig.categories.find(c=>c.id===x.categoryId)?.name||"Γενικά",price:Number(x.price)}));apiConfig.tables=tables;apiConfig.orders=orders;stockItems=stock.map(x=>({id:x.id,code:x.code,name:x.name,category:x.category,unit:x.unit,quantity:Number(x.quantity),min:Number(x.minimumQuantity),unitCost:Number(x.unitCost)}));recipes=recipeRows.map(r=>({id:r.id,saleItemId:r.saleItemId,itemName:r.itemName,salePrice:Number(r.salePriceSnapshot),ingredients:r.ingredients.map(i=>({stockItemId:i.stockItemId,stockName:i.stockName,unit:i.unit,unitCost:Number(i.unitCost),quantity:Number(i.quantity)}))}));apiConfig.connected=true;boards.tables.items=tables.map((t,i)=>[t.name,t.status==="Occupied"?"Κατειλημμένο":t.status==="Reserved"?"Κράτηση":"Ελεύθερο",t.status==="Occupied"?"busy":t.status==="Reserved"?"reserved":"free","", "—"]);boards.delivery.items=orders.filter(o=>o.channel==="Delivery").map(o=>{const state=({New:"new",Preparing:"preparing",Ready:"ready",Dispatched:"dispatched",Delivered:"completed"})[o.status]||"new";return Object.assign([o.orderNumber,o.status,state,o.orderNumber,money(Number(o.total))],{id:o.id,customer:o.customerName||"",phone:o.phone||"",address:o.address||"",paidAmount:Number(o.paidAmount||0),balance:Math.max(0,Number(o.total)-Number(o.paidAmount||0)),receipt:false});});if(activeBoard==="tables")renderTables();else if(activeBoard==="delivery")renderDelivery();else if(activeBoard==="takeaway")renderTakeaway();if(activeBoard==="inventory")renderInventory();if(activeBoard==="recipes")renderRecipes();renderItems();}
+async function loadSqlData(){const [items,tables,orders,categories,stock,recipeRows,customers]=await Promise.all([apiRequest("/api/items"),apiRequest("/api/tables"),apiRequest("/api/orders"),apiRequest("/api/categories"),apiRequest("/api/inventory"),apiRequest("/api/recipes"),apiRequest("/api/customers")]);apiConfig.categories=categories;apiConfig.customers=customers;menu=items.map(x=>({id:x.id,code:x.code,categoryId:x.categoryId,name:x.name,category:x.categoryName||apiConfig.categories.find(c=>c.id===x.categoryId)?.name||"Γενικά",price:Number(x.price)}));apiConfig.tables=tables;apiConfig.orders=orders;stockItems=stock.map(x=>({id:x.id,code:x.code,name:x.name,category:x.category,unit:x.unit,quantity:Number(x.quantity),min:Number(x.minimumQuantity),unitCost:Number(x.unitCost)}));recipes=recipeRows.map(r=>({id:r.id,saleItemId:r.saleItemId,itemName:r.itemName,salePrice:Number(r.salePriceSnapshot),ingredients:r.ingredients.map(i=>({stockItemId:i.stockItemId,stockName:i.stockName,unit:i.unit,unitCost:Number(i.unitCost),quantity:Number(i.quantity)}))}));apiConfig.connected=true;boards.tables.items=tables.map((t,i)=>[t.name,t.status==="Occupied"?"Κατειλημμένο":t.status==="Reserved"?"Κράτηση":"Ελεύθερο",t.status==="Occupied"?"busy":t.status==="Reserved"?"reserved":"free","", "—"]);boards.delivery.items=orders.filter(o=>o.channel==="Delivery").map(o=>{const state=({New:"new",Preparing:"preparing",Ready:"ready",Dispatched:"dispatched",Delivered:"completed"})[o.status]||"new";return Object.assign([o.orderNumber,o.status,state,o.orderNumber,money(Number(o.total))],{id:o.id,customer:o.customerName||"",phone:o.phone||"",address:o.address||"",paidAmount:Number(o.paidAmount||0),balance:Math.max(0,Number(o.total)-Number(o.paidAmount||0)),receipt:false});});if(activeBoard==="tables")renderTables();else if(activeBoard==="delivery")renderDelivery();else if(activeBoard==="takeaway")renderTakeaway();if(activeBoard==="inventory")renderInventory();if(activeBoard==="recipes")renderRecipes();renderItems();}
 
 const defaultMenu=[{name:"Freddo Espresso",category:"Καφέδες",price:2.80},{name:"Cappuccino",category:"Καφέδες",price:3.20},{name:"Club Sandwich",category:"Φαγητό",price:8.50},{name:"Burger",category:"Φαγητό",price:10.90},{name:"Caesar Salad",category:"Σαλάτες",price:9.20},{name:"Πατάτες",category:"Sides",price:4.00},{name:"Coca Cola",category:"Αναψυκτικά",price:2.50},{name:"Νερό",category:"Αναψυκτικά",price:0.50}];
 let menu=defaultMenu.map(item=>({...item}));
@@ -55,22 +55,61 @@ function renderItems(){
  document.querySelector("#itemsCount").textContent=menu.length+" είδη";
  document.querySelector("#itemsTableBody").innerHTML=filtered.map(item=>`<tr><td><strong>${item.name}</strong></td><td>${item.category}</td><td>${money(item.price)}</td><td><button class="item-edit-button" data-edit-item="${item.index}">Επεξεργασία</button><button class="item-delete-button" data-delete-item="${item.index}">Διαγραφή</button></td></tr>`).join("")||'<tr><td colspan="4" class="items-empty">Δεν βρέθηκαν είδη.</td></tr>';
 }
-async function addOrEditItem(index=null){
- const current=index===null?{name:"",category:"Καφέδες",price:""}:menu[index];
- const name=prompt("Ονομασία είδους:",current.name);if(name===null)return;
- const cleanName=name.trim();if(!cleanName){showToast("Συμπλήρωσε ονομασία είδους.");return;}
- const category=prompt("Κατηγορία:",current.category);if(category===null)return;
- const cleanCategory=category.trim();if(!cleanCategory){showToast("Συμπλήρωσε κατηγορία.");return;}
- const raw=prompt("Τιμή (€):",String(current.price).replace(".",","));if(raw===null)return;
- const price=Number(raw.replace(",", "."));if(!Number.isFinite(price)||price<0){showToast("Μη έγκυρη τιμή.");return;}
- const duplicate=menu.some((item,i)=>i!==index&&item.name.toLocaleLowerCase("el")===cleanName.toLocaleLowerCase("el"));
- if(duplicate){showToast("Υπάρχει ήδη είδος με αυτή την ονομασία.");return;}
- if(apiConfig.connected){try{let category=apiConfig.categories.find(x=>x.name.toLocaleLowerCase("el")===cleanCategory.toLocaleLowerCase("el"));if(!category)category=await apiRequest("/api/categories",{method:"POST",body:JSON.stringify({name:cleanCategory})});const payload={name:cleanName,price,code:current.code||null,categoryId:category.id};if(index===null)await apiRequest("/api/items",{method:"POST",body:JSON.stringify(payload)});else await apiRequest("/api/items/"+menu[index].id,{method:"PUT",body:JSON.stringify(payload)});await loadSqlData();showToast(index===null?"Το είδος αποθηκεύτηκε στη βάση.":"Το είδος ενημερώθηκε στη βάση.");}catch(e){showToast(e.message);}return;}if(index===null)menu.push({name:cleanName,category:cleanCategory,price});else menu[index]={name:cleanName,category:cleanCategory,price};
- saveMenu();renderItems();if(activeBoard==="takeaway")renderTakeaway();showToast(index===null?"Το είδος προστέθηκε.":"Το είδος ενημερώθηκε.");
+let editingItemIndex=null;
+function openItemModal(index=null){
+ editingItemIndex=index;
+ const item=index===null?{code:"",name:"",categoryId:apiConfig.categories[0]?.id??"",category:"",price:""}:menu[index];
+ const modal=document.querySelector("#itemModal");
+ document.querySelector("#itemModalTitle").textContent=index===null?"Νέο είδος":"Επεξεργασία είδους";
+ document.querySelector("#itemCode").value=item.code||"";
+ document.querySelector("#itemName").value=item.name||"";
+ document.querySelector("#itemPrice").value=item.price??"";
+ const select=document.querySelector("#itemCategory");
+ const categories=apiConfig.categories.length?apiConfig.categories:[...new Set(menu.map(x=>x.category))].map((name,i)=>({id:String(i+1),name}));
+ select.innerHTML='<option value="">Χωρίς κατηγορία</option>'+categories.map(c=>'<option value="'+c.id+'">'+escapeCustomerText(c.name)+'</option>').join("");
+ select.value=item.categoryId??(categories.find(c=>c.name===item.category)?.id??"");
+ document.querySelector("#itemFormError").textContent="";
+ modal.hidden=false;
+ document.querySelector("#itemName").focus();
 }
-document.querySelector("#addItemButton").addEventListener("click",()=>addOrEditItem());
+function closeItemModal(){document.querySelector("#itemModal").hidden=true;editingItemIndex=null;}
+document.querySelector("#addItemButton").addEventListener("click",()=>openItemModal());
+document.querySelector("#closeItemModal").addEventListener("click",closeItemModal);
+document.querySelector("#cancelItemModal").addEventListener("click",closeItemModal);
+document.querySelector("#itemModal").addEventListener("click",event=>{if(event.target.id==="itemModal")closeItemModal();});
+document.querySelector("#itemForm").addEventListener("submit",async event=>{
+ event.preventDefault();
+ const form=event.currentTarget,error=document.querySelector("#itemFormError");
+ const code=document.querySelector("#itemCode").value.trim();
+ const name=document.querySelector("#itemName").value.trim();
+ const price=Number(document.querySelector("#itemPrice").value);
+ const categoryValue=document.querySelector("#itemCategory").value;
+ const categoryId=categoryValue?Number(categoryValue):null;
+ if(!name||!Number.isFinite(price)||price<0){error.textContent="Συμπλήρωσε ονομασία και έγκυρη μη αρνητική τιμή.";return;}
+ const duplicate=menu.some((item,i)=>i!==editingItemIndex&&item.name.toLocaleLowerCase("el")===name.toLocaleLowerCase("el"));
+ if(duplicate){error.textContent="Υπάρχει ήδη είδος με αυτή την ονομασία.";return;}
+ const isNew=editingItemIndex===null;
+ const current=isNew?null:menu[editingItemIndex];
+ const categoryName=apiConfig.categories.find(x=>x.id===categoryId)?.name||"Γενικά";
+ const payload={code:code||null,name,price,categoryId};
+ const saveButton=form.querySelector('[type="submit"]');
+ saveButton.disabled=true;saveButton.textContent="Αποθήκευση…";
+ try{
+  if(apiConfig.connected){
+   if(isNew)await apiRequest("/api/items",{method:"POST",body:JSON.stringify(payload)});
+   else await apiRequest("/api/items/"+current.id,{method:"PUT",body:JSON.stringify(payload)});
+   await loadSqlData();
+  }else{
+   if(isNew)menu.push({code,name,categoryId,category:categoryName,price});
+   else menu[editingItemIndex]={...current,code,name,categoryId,category:categoryName,price};
+   saveMenu();renderItems();if(activeBoard==="takeaway")renderTakeaway();
+  }
+  closeItemModal();showToast(isNew?"Το είδος αποθηκεύτηκε.":"Το είδος ενημερώθηκε.");
+ }catch(e){error.textContent=e.message;}
+ finally{saveButton.disabled=false;saveButton.textContent="Αποθήκευση";}
+});
 document.querySelector("#itemsSearch").addEventListener("input",event=>{itemsSearch=event.target.value;renderItems();const input=document.querySelector("#itemsSearch");input.focus();input.setSelectionRange(itemsSearch.length,itemsSearch.length);});
-document.querySelector("#itemsTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-edit-item]");if(edit){addOrEditItem(Number(edit.dataset.editItem));return;}const del=event.target.closest("[data-delete-item]");if(del){const index=Number(del.dataset.deleteItem);if(!confirm("Να διαγραφεί το είδος "+menu[index].name+";"))return;if(apiConfig.connected){void apiRequest("/api/items/"+menu[index].id,{method:"DELETE"}).then(loadSqlData).then(()=>showToast("Το είδος διαγράφηκε από τη βάση.")).catch(e=>showToast(e.message));return;}menu.splice(index,1);saveMenu();renderItems();showToast("Το είδος διαγράφηκε.");}});
+document.querySelector("#itemsTableBody").addEventListener("click",event=>{const edit=event.target.closest("[data-edit-item]");if(edit){openItemModal(Number(edit.dataset.editItem));return;}const del=event.target.closest("[data-delete-item]");if(del){const index=Number(del.dataset.deleteItem);if(!confirm("Να διαγραφεί το είδος "+menu[index].name+";"))return;if(apiConfig.connected){void apiRequest("/api/items/"+menu[index].id,{method:"DELETE"}).then(loadSqlData).then(()=>showToast("Το είδος διαγράφηκε από τη βάση.")).catch(e=>showToast(e.message));return;}menu.splice(index,1);saveMenu();renderItems();showToast("Το είδος διαγράφηκε.");}});
 
 const defaultStock=[
  {name:"Καφές Espresso",category:"Καφέδες",unit:"kg",quantity:8,min:3},

@@ -186,3 +186,14 @@ body.dark .table-tile>strong,body.dark .table-service-tile>strong,body.dark .del
 
 .items-heading-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}#stockReceiptForm{display:grid;gap:12px}#stockReceiptForm label{display:grid;gap:6px;color:#59695f;font-size:10px;font-weight:700}#stockReceiptForm input,#stockReceiptForm select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:inherit;padding:10px 11px;font:400 12px "DM Sans",sans-serif}body.dark #stockReceiptForm label{color:#c2cec5}
 .stock-history-modal{max-width:680px}.stock-history-list{display:grid;gap:0;max-height:55vh;overflow:auto;margin-top:18px}.stock-history-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border,#e6ebe7)}.stock-history-row>div{display:grid;gap:5px;min-width:0}.stock-history-row small{color:var(--muted,#748078);font-size:12px;overflow-wrap:anywhere}.stock-history-row b{white-space:nowrap;font-variant-numeric:tabular-nums}.stock-in{color:#16834a}.stock-out{color:#b45336}
+
+/* Items create/edit modal */
+#itemForm{display:grid;gap:12px}
+#itemForm label{display:grid;gap:6px;color:#59695f;font-size:10px;font-weight:700}
+#itemForm input,#itemForm select{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--canvas);color:inherit;padding:10px 11px;font:400 12px "DM Sans",sans-serif;outline:none}
+#itemForm input:focus,#itemForm select:focus{border-color:#69a47d;box-shadow:0 0 0 3px #69a47d20}
+#itemFormError{min-height:16px;margin:0;color:#b45336;font-size:10px}
+#itemForm .modal-actions{display:flex;justify-content:flex-end;gap:9px}
+#itemForm .primary-button{cursor:pointer}
+#itemForm .primary-button:disabled{opacity:.6;cursor:wait}
+body.dark #itemForm label{color:#c2cec5}
