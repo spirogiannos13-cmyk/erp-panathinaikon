@@ -115,6 +115,22 @@
     </section>
   </div>
   <div class="modal-backdrop" id="receiptModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">DEMO ΕΚΔΟΣΗ</div><h2>Απόδειξη</h2></div><button class="modal-close" type="button" id="closeReceiptModal">×</button></div><p id="receiptText">Η έκδοση απόδειξης θα συνδεθεί με τον φορολογικό μηχανισμό στο επόμενο στάδιο.</p><button class="primary-button" type="button" id="receiptOk">Εντάξει</button></section></div>
+  <div class="modal-backdrop" id="itemModal" hidden>
+    <section class="order-modal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
+      <div class="modal-heading">
+        <div><div class="eyebrow">ΚΑΤΑΛΟΓΟΣ ΕΙΔΩΝ</div><h2 id="itemModalTitle">Νέο είδος</h2><p>Συμπλήρωσε τα στοιχεία και την τιμή πώλησης.</p></div>
+        <button class="modal-close" type="button" id="closeItemModal" aria-label="Κλείσιμο">×</button>
+      </div>
+      <form id="itemForm">
+        <label for="itemCode">Κωδικός είδους<input id="itemCode" name="code" maxlength="40" autocomplete="off"></label>
+        <label for="itemName">Ονομασία είδους<input id="itemName" name="name" required maxlength="160" autocomplete="off"></label>
+        <label for="itemCategory">Κατηγορία<select id="itemCategory" name="categoryId"><option value="">Χωρίς κατηγορία</option></select></label>
+        <label for="itemPrice">Τιμή πώλησης (€)<input id="itemPrice" name="price" type="number" min="0" step="0.01" required inputmode="decimal"></label>
+        <p id="itemFormError" role="alert" aria-live="polite"></p>
+        <div class="modal-actions"><button class="secondary-button" type="button" id="cancelItemModal">Ακύρωση</button><button class="primary-button" type="submit">Αποθήκευση</button></div>
+      </form>
+    </section>
+  </div>
 <div class="modal-backdrop" id="staffModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΠΡΟΣΒΑΣΗΣ</div><h2 id="staffModalTitle">Νέος χρήστης</h2><p>Δημιουργία λογαριασμού καταστήματος.</p></div><button class="modal-close" type="button" id="closeStaffModal">×</button></div><form id="staffForm"><label>Ονοματεπώνυμο<input id="staffDisplayName" required maxlength="160"></label><label>Όνομα χρήστη<input id="staffUsername" required maxlength="80"></label><label>Ρόλος<select id="staffRole"><option value="Staff">Υπάλληλος</option><option value="Manager">Υπεύθυνος</option><option value="Admin">Διαχειριστής</option></select></label><label id="staffPasswordLabel">Προσωρινός κωδικός<input id="staffPassword" type="password" minlength="12"></label><p id="staffFormError" role="alert"></p><button class="primary-button" type="submit">Αποθήκευση</button></form></section></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
