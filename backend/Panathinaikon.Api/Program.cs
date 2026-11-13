@@ -37,6 +37,17 @@ app.MapPost("/api/auth/login",async(LoginRequest q,AppDbContext db,IPasswordHash
  return Results.Ok(new{accessToken=new JwtSecurityTokenHandler().WriteToken(token),tokenType="Bearer",expiresIn=minutes*60,user=new{user.Id,user.Username,user.DisplayName,user.Role,user.StoreId,storeName=user.Store!.Name}});
 }).AllowAnonymous();
 var api=app.MapGroup("/api").RequireAuthorization();
+api.MapPost("/auth/change-password",async(ChangePasswordRequest q,ClaimsPrincipal u,AppDbContext db,IPasswordHasher<UserAccount> hasher)=>{
+ var userId=int.Parse(u.FindFirstValue(ClaimTypes.NameIdentifier)!);
+ var user=await db.Users.SingleOrDefaultAsync(x=>x.Id==userId&&x.IsActive);
+ if(user is null)return Results.Unauthorized();
+ if(string.IsNullOrWhiteSpace(q.CurrentPassword)||hasher.VerifyHashedPassword(user,user.PasswordHash,q.CurrentPassword)==PasswordVerificationResult.Failed)return Results.Unauthorized();
+ if(string.IsNullOrWhiteSpace(q.NewPassword)||q.NewPassword.Length<12)return Results.BadRequest(new{message="Ο νέος κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες."});
+ if(q.CurrentPassword==q.NewPassword)return Results.BadRequest(new{message="Ο νέος κωδικός πρέπει να είναι διαφορετικός από τον τρέχοντα."});
+ user.PasswordHash=hasher.HashPassword(user,q.NewPassword);
+ await db.SaveChangesAsync();
+ return Results.NoContent();
+});
 api.MapGet("/staff",async(ClaimsPrincipal u,AppDbContext db)=>{if(!u.IsInRole("Admin"))return Results.Forbid();var sid=int.Parse(u.FindFirstValue("store_id")!);return Results.Ok(await db.Users.AsNoTracking().Where(x=>x.StoreId==sid).OrderBy(x=>x.DisplayName).Select(x=>new{x.Id,x.Username,x.DisplayName,x.Role,x.IsActive}).ToListAsync());});
 api.MapPost("/staff",async(CreateStaffRequest q,ClaimsPrincipal u,AppDbContext db,IPasswordHasher<UserAccount> hasher)=>{if(!u.IsInRole("Admin"))return Results.Forbid();var sid=int.Parse(u.FindFirstValue("store_id")!);var username=q.Username.Trim();var name=q.DisplayName.Trim();if(string.IsNullOrWhiteSpace(username)||string.IsNullOrWhiteSpace(name)||q.Password.Length<12||!new[]{"Admin","Manager","Staff"}.Contains(q.Role))return Results.BadRequest(new{message="Συμπλήρωσε σωστά τα στοιχεία. Ο κωδικός πρέπει να έχει τουλάχιστον 12 χαρακτήρες."});if(await db.Users.AnyAsync(x=>x.StoreId==sid&&x.Username==username))return Results.Conflict(new{message="Το όνομα χρήστη χρησιμοποιείται ήδη."});var user=new UserAccount{StoreId=sid,Username=username,DisplayName=name,Role=q.Role};user.PasswordHash=hasher.HashPassword(user,q.Password);db.Users.Add(user);await db.SaveChangesAsync();return Results.Created("/api/staff/"+user.Id,new{id=user.Id,user.Username,user.DisplayName,user.Role,user.IsActive});});
 api.MapPut("/staff/{id:int}",async(int id,UpdateStaffRequest q,ClaimsPrincipal u,AppDbContext db)=>{if(!u.IsInRole("Admin"))return Results.Forbid();var sid=int.Parse(u.FindFirstValue("store_id")!);if(string.IsNullOrWhiteSpace(q.DisplayName)||!new[]{"Admin","Manager","Staff"}.Contains(q.Role))return Results.BadRequest();var user=await db.Users.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(user is null)return Results.NotFound();user.DisplayName=q.DisplayName.Trim();user.Role=q.Role;await db.SaveChangesAsync();return Results.NoContent();});
@@ -237,6 +248,7 @@ public sealed record CreateStaffRequest(string Username,string DisplayName,strin
 public sealed record UpdateStaffRequest(string DisplayName,string Role);
 public sealed record StaffStatusRequest(bool IsActive);
 public sealed record LoginRequest(string Username,string Password);
+public sealed record ChangePasswordRequest(string CurrentPassword,string NewPassword);
 public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
 public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);
 public sealed record CreateCategoryRequest(string Name);
