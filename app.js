@@ -88,22 +88,23 @@ document.querySelector("#itemForm").addEventListener("submit",async event=>{
  if(!name||!Number.isFinite(price)||price<0){error.textContent="Συμπλήρωσε ονομασία και έγκυρη μη αρνητική τιμή.";return;}
  const duplicate=menu.some((item,i)=>i!==editingItemIndex&&item.name.toLocaleLowerCase("el")===name.toLocaleLowerCase("el"));
  if(duplicate){error.textContent="Υπάρχει ήδη είδος με αυτή την ονομασία.";return;}
- const current=editingItemIndex===null?null:menu[editingItemIndex];
+ const isNew=editingItemIndex===null;
+ const current=isNew?null:menu[editingItemIndex];
  const categoryName=apiConfig.categories.find(x=>x.id===categoryId)?.name||"Γενικά";
  const payload={code:code||null,name,price,categoryId};
  const saveButton=form.querySelector('[type="submit"]');
  saveButton.disabled=true;saveButton.textContent="Αποθήκευση…";
  try{
   if(apiConfig.connected){
-   if(editingItemIndex===null)await apiRequest("/api/items",{method:"POST",body:JSON.stringify(payload)});
+   if(isNew)await apiRequest("/api/items",{method:"POST",body:JSON.stringify(payload)});
    else await apiRequest("/api/items/"+current.id,{method:"PUT",body:JSON.stringify(payload)});
    await loadSqlData();
   }else{
-   if(editingItemIndex===null)menu.push({code,name,categoryId,category:categoryName,price});
+   if(isNew)menu.push({code,name,categoryId,category:categoryName,price});
    else menu[editingItemIndex]={...current,code,name,categoryId,category:categoryName,price};
    saveMenu();renderItems();if(activeBoard==="takeaway")renderTakeaway();
   }
-  closeItemModal();showToast(editingItemIndex===null?"Το είδος αποθηκεύτηκε.":"Το είδος ενημερώθηκε.");
+  closeItemModal();showToast(isNew?"Το είδος αποθηκεύτηκε.":"Το είδος ενημερώθηκε.");
  }catch(e){error.textContent=e.message;}
  finally{saveButton.disabled=false;saveButton.textContent="Αποθήκευση";}
 });
