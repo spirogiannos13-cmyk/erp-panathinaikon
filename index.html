@@ -105,13 +105,13 @@
   <div class="modal-backdrop" id="tableModal" hidden>
     <section class="order-modal table-management-modal" role="dialog" aria-modal="true" aria-labelledby="tableModalTitle">
       <div class="modal-heading"><div><div class="eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΟΥ</div><h2 id="tableModalTitle">Τραπέζι 01</h2><p id="tableModalSubtitle">Ελεύθερο τραπέζι</p></div><button class="modal-close" type="button" id="closeTableModal" aria-label="Κλείσιμο">×</button></div>
+      <div id="tableOrderDetails" class="table-order-details"><p class="table-order-empty">Δεν υπάρχει ενεργή παραγγελία.</p></div>
       <div class="table-action-grid">
         <button class="table-action primary-action" id="tableStartOrder"><span>＋</span><strong>Νέα παραγγελία</strong><small>Προσθήκη ειδών στο τραπέζι</small></button>
-        <button class="table-action" id="tableReceipt"><span>▤</span><strong>Έκδοση απόδειξης</strong><small>Προεπισκόπηση έκδοσης (demo)</small></button>
-        <button class="table-action" id="tableDiscount"><span>%</span><strong>Έκπτωση</strong><small>Εφαρμογή έκπτωσης στον λογαριασμό</small></button>
-        <button class="table-action" id="tableClose"><span>✓</span><strong>Κλείσιμο τραπεζιού</strong><small>Ολοκλήρωση και αποδέσμευση</small></button>
+        <button class="table-action" id="tablePay" hidden><span>€</span><strong>Καταχώριση πληρωμής</strong><small>Είσπραξη και ενημέρωση υπολοίπου</small></button>
+        <button class="table-action" id="tableClose"><span>✓</span><strong>Κλείσιμο τραπεζιού</strong><small>Κλείσιμο μετά την εξόφληση</small></button>
       </div>
-      <div class="table-management-note" id="tableManagementNote">Οι ενέργειες είναι ενδεικτικές λειτουργίες demo.</div>
+      <div class="table-management-note" id="tableManagementNote">Η διαχείριση λογαριασμού γίνεται μέσω SQL Server.</div>
     </section>
   </div>
   <div class="modal-backdrop" id="receiptModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">DEMO ΕΚΔΟΣΗ</div><h2>Απόδειξη</h2></div><button class="modal-close" type="button" id="closeReceiptModal">×</button></div><p id="receiptText">Η έκδοση απόδειξης θα συνδεθεί με τον φορολογικό μηχανισμό στο επόμενο στάδιο.</p><button class="primary-button" type="button" id="receiptOk">Εντάξει</button></section></div>

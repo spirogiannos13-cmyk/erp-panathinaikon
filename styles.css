@@ -216,3 +216,17 @@ body.dark #itemForm label{color:#c2cec5}
 .floorplan-grid .table-tile .table-account{font-size:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .table-area-empty{margin:8px 0;color:#87938b;font-size:10px}
 @media(max-width:700px){.floorplan-grid{padding:9px}.table-tile-grid{gap:8px}.floorplan-grid .table-tile,.floorplan-grid .table-service-tile{width:64px;min-height:72px}}
+
+.table-order-details{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.table-order-empty{margin:0;color:#849187;font-size:12px;line-height:1.6}
+.table-order-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.table-order-summary div,.table-order-totals div{display:flex;flex-direction:column;gap:5px}
+.table-order-summary span{font-size:9px;letter-spacing:.06em;color:#87938b}
+.table-order-summary strong{font-size:12px;color:var(--green)}
+.table-order-lines{display:grid;gap:8px;padding:12px 0;border-bottom:1px solid var(--line)}
+.table-order-lines div,.table-order-totals div{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--text)}
+.table-order-totals{display:grid;gap:8px;padding-top:12px}
+.table-order-totals div{flex-direction:row}
+.table-order-totals .table-order-balance{padding-top:8px;border-top:1px solid var(--line);font-weight:700;color:var(--green)}
+.table-action:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:560px){.table-order-summary{grid-template-columns:1fr 1fr}.table-action-grid{grid-template-columns:1fr}}

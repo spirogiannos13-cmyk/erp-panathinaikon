@@ -230,7 +230,7 @@ api.MapPost("/reservations",async(CreateReservationRequest q,ClaimsPrincipal u,A
  db.Reservations.Add(row);await db.SaveChangesAsync();return Results.Created($"/api/reservations/{row.Id}",new{row.Id,row.GuestName,row.Phone,row.GuestCount,row.StartsAtLocal,row.DurationMinutes,row.Status,row.TableId,TableName=table?.Name});
 });
 api.MapPatch("/reservations/{id:int}/status",async(int id,UpdateReservationStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(!new[]{"Booked","Seated","Cancelled","NoShow"}.Contains(q.Status))return Results.BadRequest(new{message="Μη έγκυρη κατάσταση κράτησης."});var row=await db.Reservations.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);if(row is null)return Results.NotFound();if(row.Status!="Booked")return Results.Conflict(new{message="Η κράτηση έχει ήδη ολοκληρωθεί ή ακυρωθεί."});row.Status=q.Status;await db.SaveChangesAsync();return Results.Ok(new{row.Id,row.Status});});
-api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc,CustomerId=x.CustomerId,CustomerName=x.Customer==null?null:x.Customer.Name,Phone=x.Customer==null?null:x.Customer.Phone,Address=x.Customer==null?null:x.Customer.Address,PaidAmount=db.OrderPayments.Where(p=>p.StoreId==sid&&p.SalesOrderId==x.Id).Sum(p=>(decimal?)p.Amount)??0m}).Take(100).ToListAsync();});
+api.MapGet("/orders",async(ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);return await db.Orders.AsNoTracking().Where(x=>x.StoreId==sid).OrderByDescending(x=>x.CreatedAtUtc).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.TableId,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.CreatedAtUtc,x.ClosedAtUtc,CustomerId=x.CustomerId,CustomerName=x.Customer==null?null:x.Customer.Name,Phone=x.Customer==null?null:x.Customer.Phone,Address=x.Customer==null?null:x.Customer.Address,PaidAmount=db.OrderPayments.Where(p=>p.StoreId==sid&&p.SalesOrderId==x.Id).Sum(p=>(decimal?)p.Amount)??0m}).Take(100).ToListAsync();});
 
 api.MapGet("/orders/{id:int}",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);var order=await db.Orders.AsNoTracking().Include(x=>x.Customer).Include(x=>x.Lines).Where(x=>x.Id==id&&x.StoreId==sid).Select(x=>new{x.Id,x.OrderNumber,x.Channel,x.Status,x.Subtotal,x.DiscountAmount,x.Total,x.Notes,x.CreatedAtUtc,Customer=x.Customer==null?null:new{x.Customer.Name,x.Customer.Phone,x.Customer.Address},Lines=x.Lines.Select(l=>new{l.Id,l.SaleItemId,l.ItemNameSnapshot,l.UnitPrice,l.Quantity,l.LineTotal})}).SingleOrDefaultAsync();return order is null?Results.NotFound():Results.Ok(order);});
 api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext db)=>{
@@ -260,6 +260,23 @@ api.MapPost("/orders",async(CreateOrderRequest q,ClaimsPrincipal u,AppDbContext 
  db.Orders.Add(order);if(table is not null)table.Status="Occupied";await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{order.Id}",new{order.Id,order.OrderNumber,order.Channel,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
 });
+api.MapPost("/orders/{id:int}/lines",async Task<IResult> (int id,CreateOrderLinesRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(q.Lines is null||q.Lines.Count==0||q.Lines.Any(x=>x.Quantity<=0))return Results.BadRequest(new{message="Πρόσθεσε τουλάχιστον ένα είδος με θετική ποσότητα."});
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var order=await db.Orders.Include(x=>x.Lines).SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid&&x.Channel=="Table");
+ if(order is null)return Results.NotFound();
+ if(order.Status!="Open")return Results.Conflict(new{message="Μπορείς να προσθέσεις είδη μόνο πριν ξεκινήσει η προετοιμασία."});
+ var reference="Order:"+order.Id;
+ if(await db.StockMovements.AnyAsync(x=>x.StoreId==sid&&x.Reference==reference&&x.MovementType=="OrderConsumption"))return Results.Conflict(new{message="Η παραγγελία έχει ήδη καταναλώσει απόθεμα και δεν δέχεται νέες γραμμές."});
+ var ids=q.Lines.Select(x=>x.SaleItemId).Distinct().ToArray();
+ var items=await db.SaleItems.Where(x=>x.StoreId==sid&&x.IsActive&&ids.Contains(x.Id)).ToDictionaryAsync(x=>x.Id);
+ if(items.Count!=ids.Length)return Results.BadRequest(new{message="Ένα ή περισσότερα είδη δεν είναι διαθέσιμα."});
+ foreach(var line in q.Lines){var item=items[line.SaleItemId];var unit=decimal.Round(item.Price,2);order.Lines.Add(new SalesOrderLine{SaleItemId=item.Id,ItemNameSnapshot=item.Name,UnitPrice=unit,Quantity=line.Quantity,LineTotal=decimal.Round(unit*line.Quantity,2)});}
+ order.Subtotal=order.Lines.Sum(x=>x.LineTotal);order.Total=order.Subtotal-order.DiscountAmount;
+ await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Ok(new{order.Id,order.OrderNumber,order.Status,order.Subtotal,order.DiscountAmount,order.Total});
+});
 api.MapGet("/orders/{id:int}/payments",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(!await db.Orders.AnyAsync(x=>x.Id==id&&x.StoreId==sid))return Results.NotFound();var rows=await db.OrderPayments.AsNoTracking().Where(x=>x.StoreId==sid&&x.SalesOrderId==id).OrderBy(x=>x.PaidAtUtc).Select(x=>new{x.Id,x.Amount,x.Method,x.Reference,x.PaidAtUtc}).ToListAsync();return Results.Ok(rows);});
 api.MapPost("/orders/{id:int}/payments",async Task<IResult> (int id,CreateOrderPaymentRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);var method=q.Method?.Trim();
@@ -283,6 +300,8 @@ api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderSt
  var allowed=order.Channel=="Delivery"?new[]{"New","Preparing","Ready","Dispatched","Delivered","Cancelled"}:new[]{"Open","Preparing","Closed","Cancelled"};
  if(!allowed.Contains(q.Status))return Results.BadRequest(new{message="Invalid status for this order channel."});
  if(order.Status=="Delivered"||order.Status=="Closed"||order.Status=="Cancelled")return Results.Conflict(new{message="This order is already finalized."});
+ if(order.Channel=="Table"&&order.Status=="Preparing"&&q.Status=="Open")return Results.Conflict(new{message="Η παραγγελία δεν μπορεί να επιστρέψει σε κατάσταση πριν την προετοιμασία."});
+ if(order.Channel=="Table"&&q.Status=="Closed"){var paid=await db.OrderPayments.Where(x=>x.StoreId==sid&&x.SalesOrderId==id).SumAsync(x=>(decimal?)x.Amount)??0m;if(paid<order.Total)return Results.Conflict(new{message=$"Δεν μπορεί να κλείσει το τραπέζι. Εκκρεμεί πληρωμή {order.Total-paid:0.00} €."});}
  var reference="Order:"+order.Id;
  if(q.Status=="Preparing"&&order.Status!="Preparing"){
   var alreadyConsumed=await db.StockMovements.AnyAsync(x=>x.StoreId==sid&&x.Reference==reference&&x.MovementType=="OrderConsumption");
@@ -337,6 +356,7 @@ public sealed record RecipeRequest(int SaleItemId,decimal SalePriceSnapshot,List
 
 public sealed record CreateOrderLineRequest(int SaleItemId,decimal Quantity);
 public sealed record CreateOrderRequest(string Channel,int? TableId,string? CustomerName,string? Phone,string? Address,string? Notes,decimal DiscountAmount,List<CreateOrderLineRequest> Lines,int? CustomerId=null);
+public sealed record CreateOrderLinesRequest(List<CreateOrderLineRequest> Lines);
 public sealed record UpdateOrderStatusRequest(string Status);
 
 public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
