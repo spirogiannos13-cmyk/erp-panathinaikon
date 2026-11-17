@@ -422,3 +422,14 @@ body.dark #itemForm label{color:#c2cec5}
 }
 
 .table-config-action{border-style:dashed;color:var(--green);font-weight:700}.table-config-action:hover{background:var(--soft-green,#e8f2ec);border-color:var(--green)}
+
+/* Table area and table creation dialog */
+.table-setup-modal{width:min(100%,460px)}
+.table-setup-modal form{display:grid;gap:13px}
+.table-setup-modal form>label{display:grid;gap:7px;color:var(--deep);font-size:11px;font-weight:700}
+.table-setup-modal form input,.table-setup-modal form select{width:100%;min-height:43px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--canvas);color:var(--text);font:500 12px "DM Sans",sans-serif;outline:none}
+.table-setup-modal form input:focus,.table-setup-modal form select:focus{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 14%,transparent)}
+.table-setup-modal #tableSetupError{min-height:16px;margin:0;color:#b64236;font-size:10px}
+.table-setup-modal .modal-actions{margin-top:2px}
+.table-setup-modal button:disabled{opacity:.6;cursor:wait}
+body.dark .table-setup-modal form>label{color:var(--text)}
