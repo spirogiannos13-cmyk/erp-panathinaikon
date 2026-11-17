@@ -288,3 +288,38 @@ body.dark #itemForm label{color:#c2cec5}
 .floorplan-grid .table-tile.paid{background:#fbe8e8;border:1px solid #dc8a8a;box-shadow:inset 0 0 0 1px #f2caca}
 .floorplan-grid .table-tile.paid .table-symbol,.floorplan-grid .table-tile.paid>strong,.floorplan-grid .table-tile.paid>small{color:#a92727}
 .table-state-legend i.paid{background:#d93636}
+
+/* Floor plan: use the available viewport and make partial settlement explicit */
+.main-content:has(#orderGrid.floorplan-grid){min-height:100vh;display:flex;flex-direction:column;padding-bottom:12px}
+.main-content:has(#orderGrid.floorplan-grid) .topbar{height:48px;flex:none}
+.main-content:has(#orderGrid.floorplan-grid) #ordersHeading{padding:10px 0 7px}
+.main-content:has(#orderGrid.floorplan-grid) #ordersHeading h1{font-size:21px;margin:3px 0}
+.main-content:has(#orderGrid.floorplan-grid) #ordersHeading p{font-size:9px}
+.main-content:has(#orderGrid.floorplan-grid) .operations-section{display:flex;flex:1;min-height:0;flex-direction:column;padding-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) .section-heading{margin:4px 0 8px}
+.main-content:has(#orderGrid.floorplan-grid) .section-heading h2{font-size:17px}
+.main-content:has(#orderGrid.floorplan-grid) .section-heading p{font-size:9px}
+.main-content:has(#orderGrid.floorplan-grid) .view-tabs{margin-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) .board-toolbar{margin-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) .floorplan-summary{margin-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid{flex:1;min-height:0;align-content:start;gap:12px;padding:12px;overflow:auto}
+.main-content:has(#orderGrid.floorplan-grid) .table-tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));align-content:start;gap:12px}
+.main-content:has(#orderGrid.floorplan-grid) .table-tile,.main-content:has(#orderGrid.floorplan-grid) .table-service-tile{width:auto;min-height:112px;padding:12px 8px;gap:7px}
+.main-content:has(#orderGrid.floorplan-grid) .table-tile>strong{font-size:13px}
+.main-content:has(#orderGrid.floorplan-grid) .table-tile>small{font-size:9px}
+.main-content:has(#orderGrid.floorplan-grid) .table-tile .table-account{font-size:9px}
+.floorplan-grid .table-tile.partially-paid{background:linear-gradient(90deg,#fff0c4 0 50%,#f8dede 50% 100%);border:1px solid #d49a69;box-shadow:inset 0 0 0 1px #ead3ae}
+.floorplan-grid .table-tile.partially-paid .table-symbol,.floorplan-grid .table-tile.partially-paid>strong,.floorplan-grid .table-tile.partially-paid>small{color:#71482e}
+.table-state-legend i.partial{background:linear-gradient(90deg,#eabf32 0 50%,#d93636 50% 100%)}
+@media(max-width:900px){
+ .main-content:has(#orderGrid.floorplan-grid){margin-left:0;padding:0 16px 10px}
+ .main-content:has(#orderGrid.floorplan-grid) .table-tile-grid{grid-template-columns:repeat(auto-fill,minmax(94px,1fr))}
+}
+@media(max-width:600px){
+ .main-content:has(#orderGrid.floorplan-grid) #ordersHeading{padding-top:8px}
+ .main-content:has(#orderGrid.floorplan-grid) .section-heading{align-items:flex-start}
+ .main-content:has(#orderGrid.floorplan-grid) .board-toolbar{align-items:flex-start;gap:8px;flex-wrap:wrap}
+ .main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid{padding:8px;gap:8px}
+ .main-content:has(#orderGrid.floorplan-grid) .table-tile-grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
+ .main-content:has(#orderGrid.floorplan-grid) .table-tile,.main-content:has(#orderGrid.floorplan-grid) .table-service-tile{min-height:94px}
+}
