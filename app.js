@@ -34,22 +34,36 @@ let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
-function currentTables(){return boards.tables.items.map((item,index)=>({...item,state:savedStates[index]||item[2],index}));}
+function tableOrdersFor(tableId){return (apiConfig.orders||[]).filter(order=>order.tableId===tableId&&order.channel==="Table");}
+function tableHasReceipt(order){return Boolean(order.receiptIssuedAtUtc||order.receiptNumber||order.receiptId||order.receiptIssued===true||order.hasReceipt===true);}
+function currentTables(){
+ return boards.tables.items.map((item,index)=>{
+  const tableOrders=apiConfig.connected&&item.id?tableOrdersFor(item.id):[];
+  const activeOrder=tableOrders.find(order=>["Open","Preparing"].includes(order.status));
+  const receiptOrder=tableOrders.find(tableHasReceipt);
+  let visualState="free",label="Ελεύθερο",description="Ελεύθερο τραπέζι";
+  if(activeOrder&&receiptOrder){visualState="receipt-order";label="Απόδειξη και παραγγελία";description=label;}
+  else if(activeOrder){visualState="busy";label="Κατειλημμένο";description="Ενεργή παραγγελία";}
+  else if(receiptOrder){visualState="receipt";label="Απόδειξη";description="Έχει εκδοθεί απόδειξη";}
+  else if(!apiConfig.connected){visualState=savedStates[index]||item[2];label=visualState==="busy"?"Κατειλημμένο":visualState==="reserved"?"Κράτηση":"Ελεύθερο";description=label;}
+  return {...item,state:visualState,label,description,index,activeOrder,receiptOrder};
+ });
+}
 function saveTables(){localStorage.setItem("panathinaikon-table-states",JSON.stringify(savedStates));localStorage.setItem("panathinaikon-tables",JSON.stringify(boards.tables.items));}
 try{const persisted=JSON.parse(localStorage.getItem("panathinaikon-tables")||"null");if(Array.isArray(persisted)&&persisted.length===12)boards.tables.items=persisted;}catch{}
 function setBoardTab(type){activeBoard=type;document.querySelectorAll("[data-tab]").forEach(tab=>{const on=tab.dataset.tab===type;tab.classList.toggle("active",on);tab.setAttribute("aria-selected",String(on));});renderBoard();}
 function renderTables(){
  const tables=currentTables();
- const free=tables.filter(t=>t.state==="free").length,busy=tables.filter(t=>t.state==="busy").length,reserved=tables.filter(t=>t.state==="reserved").length;
+ const free=tables.filter(t=>t.state==="free").length,busy=tables.filter(t=>t.state==="busy"||t.state==="receipt-order").length,reserved=tables.filter(t=>t.state==="reserved").length,receipts=tables.filter(t=>t.state==="receipt"||t.state==="receipt-order").length;
  const areas=[...new Set(tables.map(t=>t.area||"Ισόγειο").filter(Boolean))];
  if(activeTableArea!=="Όλα"&&!areas.includes(activeTableArea))activeTableArea="Όλα";
  const visibleTables=activeTableArea==="Όλα"?tables:tables.filter(t=>(t.area||"Ισόγειο")===activeTableArea);
  summary.hidden=false;help.hidden=false;
- summary.innerHTML=`<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
+ summary.innerHTML=`<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Παραγγελίες</span><span><b>${receipts}</b> Αποδείξεις</span><span><b>${reserved}</b> Κρατήσεις</span>`;
  grid.className="order-grid floorplan-grid";
- const areaTabs=`<div class="table-area-tabs" role="tablist" aria-label="Όροφος ή χώρος">${["Όλα",...areas].map(area=>`<button type="button" class="table-area-tab ${activeTableArea===area?"active":""}" data-table-area="${escapeCustomerText(area)}" role="tab" aria-selected="${activeTableArea===area}">${escapeCustomerText(area)}${area==="Όλα"?"":` <span>${tables.filter(t=>(t.area||"Ισόγειο")===area).length}</span>`}</button>`).join("")}</div>`;
+ const areaTabs=`<div class="table-area-tabs" role="tablist" aria-label="Περιοχή τραπεζιών">${["Όλα",...areas].map(area=>`<button type="button" class="table-area-tab ${activeTableArea===area?"active":""}" data-table-area="${escapeCustomerText(area)}" role="tab" aria-selected="${activeTableArea===area}">${escapeCustomerText(area)}${area==="Όλα"?"":` <span>${tables.filter(t=>(t.area||"Ισόγειο")===area).length}</span>`}</button>`).join("")}</div>`;
  const services=`<button class="table-service-tile" data-service-mode="takeaway"><span class="table-symbol">◈</span><strong>ΑΥΤΟ</strong><small>Take Away</small></button><button class="table-service-tile" data-service-mode="private"><span class="table-symbol">◇</span><strong>ΙΔΙΩΤΙΚΟ</strong><small>Χώρος / αίθουσα</small></button>`;
- const tiles=visibleTables.map(t=>`<button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${escapeCustomerText(t[0])}, ${escapeCustomerText(t[1])}"><span class="table-symbol">▤</span><strong>${String(t.index+1).padStart(2,"0")}</strong><small>${t.state==="busy"?"Κατειλημμένο":t.state==="reserved"?"Κράτηση":"Ελεύθερο"}</small><span class="table-account">${escapeCustomerText(t[4])}</span></button>`).join("");
+ const tiles=visibleTables.map(t=>`<button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${escapeCustomerText(t[0])}, ${escapeCustomerText(t.description)}" title="${escapeCustomerText(t.description)}"><span class="table-symbol">▤</span><strong>${String(t.index+1).padStart(2,"0")}</strong><small>${escapeCustomerText(t.label)}</small><span class="table-account">${escapeCustomerText(t[4])}</span></button>`).join("");
  grid.innerHTML=areaTabs+`<div class="table-tile-grid">${services}${tiles||'<p class="table-area-empty">Δεν υπάρχουν τραπέζια σε αυτόν τον χώρο.</p>'}</div>`;
 }
 function renderTakeaway(){
