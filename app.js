@@ -57,10 +57,11 @@ function renderTables(){
   const labels={"ισόγειο":"Ισόγειο","εσωτερικός χώρος":"Εσωτερικός χώρος","εσωτερικοσ χωροσ":"Εσωτερικός χώρος","εξωτερικός χώρος":"Εξωτερικός χώρος","εξωτερικοσ χωροσ":"Εξωτερικός χώρος","αυλή":"Αυλή","μπαλκόνι":"Μπαλκόνι","βεράντα":"Βεράντα","αίθουσα":"Αίθουσα","indoor":"Εσωτερικός χώρος","outdoor":"Εξωτερικός χώρος","terrace":"Βεράντα"};
   return labels[raw]||"Χώρος τραπεζιών";
  };
- const areaKeys=[...new Set(tables.map(t=>String(t.area||"").trim()).filter(Boolean))];
- const areas=areaKeys.map(key=>({key,label:areaLabel(key)})).filter((area,index,list)=>list.findIndex(x=>x.label===area.label)===index);
- if(activeTableArea!=="Όλα"&&!areaKeys.includes(activeTableArea))activeTableArea="Όλα";
- const visibleTables=activeTableArea==="Όλα"?tables:tables.filter(t=>String(t.area||"").trim()===activeTableArea);
+  const configuredAreas=(apiConfig.tableAreas||[]).filter(area=>area&&area.id!=null&&area.name);
+  const areas=configuredAreas.map(area=>({id:area.id,key:String(area.name).trim(),label:areaLabel(area.name)}));
+  const areaKeys=areas.map(area=>area.key);
+  if(activeTableArea!=="Όλα"&&!areaKeys.includes(activeTableArea))activeTableArea="Όλα";
+  const visibleTables=activeTableArea==="Όλα"?tables:tables.filter(t=>String(t.area||"").trim()===activeTableArea);
  summary.hidden=false;help.hidden=false;
  summary.innerHTML=`<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${paid}</b> Πληρωμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
  grid.className="order-grid floorplan-grid";
@@ -497,11 +498,31 @@ async function openTable(index){
  }catch(error){details.innerHTML='<p class="table-order-empty">'+escapeCustomerText(error.message)+'</p>';document.querySelector("#tableManagementNote").textContent="Δεν ήταν δυνατή η φόρτωση του λογαριασμού.";}
 }
 function closeTable(){tableModal.hidden=true;}
+function openTableSetupModal(kind){
+ const modal=document.querySelector("#tableSetupModal"),form=document.querySelector("#tableSetupForm"),areaField=document.querySelector("#tableSetupAreaField"),areaSelect=document.querySelector("#tableSetupArea"),title=document.querySelector("#tableSetupTitle"),eyebrow=document.querySelector("#tableSetupEyebrow"),nameInput=document.querySelector("#tableSetupName"),error=document.querySelector("#tableSetupError");
+ const areas=apiConfig.tableAreas||[];form.dataset.kind=kind;form.reset();error.textContent="";
+ const isArea=kind==="area";title.textContent=isArea?"Νέος χώρος":"Νέο τραπέζι";eyebrow.textContent=isArea?"ΔΙΑΧΕΙΡΙΣΗ ΧΩΡΩΝ":"ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΩΝ";areaField.hidden=isArea;
+ areaSelect.innerHTML=areas.map(area=>"<option value=\""+area.id+"\">"+escapeCustomerText(area.name)+"</option>").join("");
+ nameInput.placeholder=isArea?"π.χ. Αυλή ή Όροφος":"π.χ. Τραπέζι 13";modal.hidden=false;nameInput.focus();
+}
+function closeTableSetupModal(){document.querySelector("#tableSetupModal").hidden=true;}
+document.querySelector("#closeTableSetupModal").addEventListener("click",closeTableSetupModal);
+document.querySelector("#cancelTableSetupModal").addEventListener("click",closeTableSetupModal);
+document.querySelector("#tableSetupModal").addEventListener("click",event=>{if(event.target.id==="tableSetupModal")closeTableSetupModal();});
+document.querySelector("#tableSetupForm").addEventListener("submit",async event=>{
+ event.preventDefault();const form=event.currentTarget,kind=form.dataset.kind,name=document.querySelector("#tableSetupName").value.trim(),areaId=Number(document.querySelector("#tableSetupArea").value),error=document.querySelector("#tableSetupError"),submit=form.querySelector('[type="submit"]');
+ if(!name){error.textContent="Συμπλήρωσε ονομασία.";return;}submit.disabled=true;error.textContent="Αποθήκευση…";
+ try{
+  if(kind==="area"){await apiRequest("/api/table-areas",{method:"POST",body:JSON.stringify({name})});await loadSqlData();activeTableArea="Όλα";renderTables();closeTableSetupModal();showToast("Ο χώρος αποθηκεύτηκε και εμφανίζεται στην κάτοψη.");}
+  else{const area=(apiConfig.tableAreas||[]).find(item=>item.id===areaId);if(!area)throw new Error("Επίλεξε έναν διαθέσιμο χώρο.");await apiRequest("/api/tables",{method:"POST",body:JSON.stringify({name,capacity:2,areaId})});activeTableArea=area.name;await loadSqlData();renderTables();closeTableSetupModal();showToast("Το τραπέζι αποθηκεύτηκε στον χώρο "+area.name+".");}
+ }catch(err){error.textContent=err.message;}finally{submit.disabled=false;}
+});
+
 grid.addEventListener("change",event=>{if(event.target.id==="existingCustomerSelect"){const customer=apiConfig.customers.find(c=>c.id===Number(event.target.value));if(customer){selectedCustomerId=customer.id;orderCustomer=customer.name;orderPhone=customer.phone||"";orderAddress=customer.address||"";}else{selectedCustomerId=null;orderCustomer="";orderPhone="";orderAddress="";}renderTakeaway();}});
 grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput"){orderCustomer=event.target.value;selectedCustomerId=null;}if(event.target.id==="orderPhoneInput")orderPhone=event.target.value;if(event.target.id==="orderAddressInput")orderAddress=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;if(event.target.id==="orderDiscountInput"){discountPercent=Math.min(100,Math.max(0,Number(event.target.value)||0));}});
 grid.addEventListener("click",event=>{
- const createArea=event.target.closest("[data-create-area]");if(createArea){if(!apiConfig.connected){showToast("Συνδέσου στο SQL Server για να δημιουργήσεις χώρο.");return;}const name=window.prompt("Όνομα νέου χώρου (π.χ. Αυλή):");if(name?.trim())void apiRequest("/api/table-areas",{method:"POST",body:JSON.stringify({name:name.trim()})}).then(loadSqlData).then(()=>showToast("Ο χώρος αποθηκεύτηκε στη βάση.")).catch(e=>showToast(e.message));return;}
- const createTable=event.target.closest("[data-create-table]");if(createTable){if(!apiConfig.connected){showToast("Συνδέσου στο SQL Server για να δημιουργήσεις τραπέζι.");return;}const name=window.prompt("Ονομασία τραπεζιού (π.χ. Τραπέζι 13):");if(!name?.trim())return;const capacityRaw=window.prompt("Πόσες θέσεις έχει το τραπέζι;","2");if(capacityRaw===null)return;const capacity=Number(capacityRaw);if(!Number.isInteger(capacity)||capacity<1||capacity>50){showToast("Οι θέσεις πρέπει να είναι από 1 έως 50.");return;}const areas=apiConfig.tableAreas||[];if(!areas.length){showToast("Δημιούργησε πρώτα έναν χώρο.");return;}const choices=areas.map((x,i)=>(i+1)+". "+x.name).join("\\n");const selected=window.prompt("Επίλεξε αριθμό χώρου:\\n"+choices,"1");if(selected===null)return;const area=areas[Number(selected)-1];if(!area){showToast("Μη έγκυρη επιλογή χώρου.");return;}void apiRequest("/api/tables",{method:"POST",body:JSON.stringify({name:name.trim(),capacity,areaId:area.id})}).then(loadSqlData).then(()=>showToast("Το τραπέζι αποθηκεύτηκε στη βάση.")).catch(e=>showToast(e.message));return;}
+  const createArea=event.target.closest("[data-create-area]");if(createArea){if(!apiConfig.connected){showToast("Συνδέσου στο SQL Server για να δημιουργήσεις χώρο.");return;}openTableSetupModal("area");return;}
+  const createTable=event.target.closest("[data-create-table]");if(createTable){if(!apiConfig.connected){showToast("Συνδέσου στο SQL Server για να δημιουργήσεις τραπέζι.");return;}if(!(apiConfig.tableAreas||[]).length){showToast("Δημιούργησε πρώτα έναν χώρο.");return;}openTableSetupModal("table");return;}
  const areaTab=event.target.closest("[data-table-area]");if(areaTab){activeTableArea=areaTab.dataset.tableArea;renderTables();return;}
  const payment=event.target.closest("[data-order-payment]");if(payment){const order=boards.delivery.items[Number(payment.dataset.orderPayment)];if(!order?.id||!apiConfig.connected)return;void showOrderPaymentDialog(order.id,order.balance,()=>loadSqlData());return;}
  const newDelivery=event.target.closest("[data-new-delivery]");if(newDelivery){cart={};orderCustomer="";orderPhone="";orderAddress="";orderNote="";orderMode="delivery";tableOrderContext=null;setBoardTab("takeaway");return;}
@@ -528,7 +549,7 @@ tableModal.addEventListener("click",e=>{if(e.target===tableModal)closeTable();})
 document.querySelector("#tableStartOrder").addEventListener("click",()=>{if(tableOrderId&&activeTableOrder?.status!=="Open")return;tableOrderContext=selectedTable;cart={};closeTable();setBoardTab("takeaway");showToast((tableOrderId?"Πρόσθεσε είδη στην παραγγελία του ":"Επίλεξε είδη για το ")+boards.tables.items[selectedTable][0]+".");});
 document.querySelector("#tablePay").addEventListener("click",async()=>{if(!tableOrderId||!activeTableOrder)return;try{const payments=await apiRequest("/api/orders/"+tableOrderId+"/payments");const balance=Math.max(0,Number(activeTableOrder.total)-payments.reduce((sum,p)=>sum+Number(p.amount||0),0));void showOrderPaymentDialog(tableOrderId,balance,async()=>{await loadSqlData();await openTable(selectedTable);});}catch(error){showToast(error.message);}});
 document.querySelector("#tableClose").addEventListener("click",async()=>{if(!apiConfig.connected){showToast("Συνδέσου στη SQL Server για να κλείσεις τραπέζι.");return;}if(!tableOrderId){showToast("Δεν υπάρχει ενεργή παραγγελία για κλείσιμο.");return;}if(!confirm("Να κλείσει το τραπέζι αφού εξοφληθεί ο λογαριασμός;"))return;try{await apiRequest("/api/orders/"+tableOrderId+"/status",{method:"PATCH",body:JSON.stringify({status:"Closed"})});await loadSqlData();closeTable();showToast("Το τραπέζι έκλεισε και αποδεσμεύτηκε.");}catch(error){showToast(error.message);}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeTable();receiptModal.hidden=true;}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeTable();closeTableSetupModal();receiptModal.hidden=true;}});
 function showToast(message){toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),2600);}
 document.querySelector("#today").textContent=new Intl.DateTimeFormat("el-GR",{weekday:"short",day:"numeric",month:"short",year:"numeric"}).format(new Date());
 renderBoard();
