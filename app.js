@@ -27,6 +27,7 @@ const tableModal=document.querySelector("#tableModal"),receiptModal=document.que
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
 function tableOrdersFor(tableId){return (apiConfig.orders||[]).filter(order=>order.tableId===tableId&&order.channel==="Table");}
 function tableHasReceipt(order){return Boolean(order.receiptIssuedAtUtc||order.receiptNumber||order.receiptId||order.receiptIssued===true||order.hasReceipt===true);}
+function tableReceiptStateLabel(state){return state==="receipt-order"?"Απόδειξη και παραγγελία":state==="receipt"?"Απόδειξη":state==="busy"?"Κατειλημμένο":state==="reserved"?"Κράτηση":"Ελεύθερο";}
 function currentTables(){
  return boards.tables.items.map((item,index)=>{
   const tableOrders=apiConfig.connected&&item.id?tableOrdersFor(item.id):[];
