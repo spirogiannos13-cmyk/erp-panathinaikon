@@ -373,7 +373,8 @@ public sealed record ChangePasswordRequest(string CurrentPassword,string NewPass
 public sealed record BootstrapRequest(string StoreName,string Username,string DisplayName,string Password);
 public sealed record CreateItemRequest(string Name,decimal Price,string? Code,int? CategoryId);
 public sealed record CreateCategoryRequest(string Name);
-public sealed record CreateTableAreaRequest(string Name);\npublic sealed record CreateDiningTableRequest(string Name,int Capacity,int AreaId);
+public sealed record CreateTableAreaRequest(string Name);
+public sealed record CreateDiningTableRequest(string Name,int Capacity,int AreaId);
 public sealed record CreateStockItemRequest(string? Code,string Name,string? Category,string Unit,decimal Quantity,decimal MinimumQuantity,decimal UnitCost);
 public sealed record UpdateStockItemRequest(string Name,string? Category,string Unit,decimal MinimumQuantity,decimal UnitCost);
 public sealed record StockMovementRequest(decimal QuantityDelta,string MovementType,string? Reference);
