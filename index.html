@@ -114,6 +114,12 @@
       <div class="table-management-note" id="tableManagementNote">Η διαχείριση λογαριασμού γίνεται μέσω SQL Server.</div>
     </section>
   </div>
+  <div class="modal-backdrop" id="tableSetupModal" hidden>
+    <section class="order-modal table-setup-modal" role="dialog" aria-modal="true" aria-labelledby="tableSetupTitle">
+      <div class="modal-heading"><div><div class="eyebrow" id="tableSetupEyebrow">ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΩΝ</div><h2 id="tableSetupTitle">Νέο τραπέζι</h2><p>Συμπλήρωσε τα στοιχεία για να εμφανιστεί στην κάτοψη.</p></div><button class="modal-close" type="button" id="closeTableSetupModal" aria-label="Κλείσιμο">×</button></div>
+      <form id="tableSetupForm"><label for="tableSetupName">Ονομασία<input id="tableSetupName" name="name" required maxlength="80" autocomplete="off"></label><label for="tableSetupArea" id="tableSetupAreaField">Χώρος τραπεζιών<select id="tableSetupArea" name="areaId" required></select></label><p id="tableSetupError" role="alert" aria-live="polite"></p><div class="modal-actions"><button class="secondary-button" type="button" id="cancelTableSetupModal">Ακύρωση</button><button class="primary-button" type="submit">Αποθήκευση</button></div></form>
+    </section>
+  </div>
   <div class="modal-backdrop" id="receiptModal" hidden><section class="order-modal" role="dialog" aria-modal="true"><div class="modal-heading"><div><div class="eyebrow">DEMO ΕΚΔΟΣΗ</div><h2>Απόδειξη</h2></div><button class="modal-close" type="button" id="closeReceiptModal">×</button></div><p id="receiptText">Η έκδοση απόδειξης θα συνδεθεί με τον φορολογικό μηχανισμό στο επόμενο στάδιο.</p><button class="primary-button" type="button" id="receiptOk">Εντάξει</button></section></div>
   <div class="modal-backdrop" id="itemModal" hidden>
     <section class="order-modal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle">
