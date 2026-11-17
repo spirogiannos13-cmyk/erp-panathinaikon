@@ -283,3 +283,8 @@ body.dark #itemForm label{color:#c2cec5}
 .table-state-legend i.busy{background:#eabf32}
 .table-state-legend i.receipt{background:#d93636}
 .table-state-legend i.receipt-order{background:linear-gradient(90deg,#eabf32 0 50%,#d93636 50% 100%)}
+
+/* Κατάσταση τραπεζιού: πλήρως εξοφλημένη ενεργή παραγγελία */
+.floorplan-grid .table-tile.paid{background:#fbe8e8;border:1px solid #dc8a8a;box-shadow:inset 0 0 0 1px #f2caca}
+.floorplan-grid .table-tile.paid .table-symbol,.floorplan-grid .table-tile.paid>strong,.floorplan-grid .table-tile.paid>small{color:#a92727}
+.table-state-legend i.paid{background:#d93636}
