@@ -30,14 +30,20 @@ function currentTables(){
  return boards.tables.items.map((item,index)=>{
   const tableOrders=apiConfig.connected&&item.id?tableOrdersFor(item.id):[];
   const activeOrders=tableOrders.filter(order=>["Open","Preparing"].includes(order.status));
-  const paidOrder=activeOrders.find(order=>Number(order.paidAmount||0)>=Number(order.total||0)&&Number(order.total||0)>0);
   const activeOrder=activeOrders[0]||null;
+  const total=Number(activeOrder?.total);
+  const paid=Number(activeOrder?.paidAmount);
+  const validAmounts=Number.isFinite(total)&&total>0&&Number.isFinite(paid)&&paid>=0;
+  const paidCents=validAmounts?Math.round(paid*100):0;
+  const totalCents=validAmounts?Math.round(total*100):0;
+  const paymentState=validAmounts&&paidCents>=totalCents?"paid":validAmounts&&paidCents>0?"partially-paid":"unpaid";
   let visualState="free",label="Ελεύθερο",description="Ελεύθερο τραπέζι";
-  if(paidOrder){visualState="paid";label="Πληρωμένο";description="Η παραγγελία έχει εξοφληθεί";}
-  else if(activeOrder){visualState="busy";label="Κατειλημμένο";description="Ενεργή παραγγελία";}
+  if(activeOrder&&paymentState==="paid"){visualState="paid";label="Πληρωμένο";description="Η παραγγελία έχει εξοφληθεί";}
+  else if(activeOrder&&paymentState==="partially-paid"){visualState="partially-paid";label="Μερικώς πληρωμένο";description="Έχει καταχωριστεί μερική πληρωμή";}
+  else if(activeOrder){visualState="busy";label="Κατειλημμένο";description="Ενεργή παραγγελία χωρίς καταχωρισμένη πληρωμή";}
   else if(!apiConfig.connected){visualState=savedStates[index]||item[2];label=visualState==="busy"?"Κατειλημμένο":"Ελεύθερο";description=label;}
   else if(item[2]==="reserved"){visualState="reserved";label="Κράτηση";description="Υπάρχει κράτηση";}
-  return {...item,state:visualState,label,description,index,activeOrder,paidOrder};
+  return {...item,state:visualState,label,description,index,activeOrder,paidOrder:paymentState==="paid"?activeOrder:null,paidAmount:validAmounts?paid:0,total:validAmounts?total:0};
  });
 }
 function saveTables(){localStorage.setItem("panathinaikon-table-states",JSON.stringify(savedStates));localStorage.setItem("panathinaikon-tables",JSON.stringify(boards.tables.items));}
@@ -46,16 +52,22 @@ function setBoardTab(type){activeBoard=type;document.querySelectorAll("[data-tab
 function renderTables(){
  const tables=currentTables();
  const free=tables.filter(t=>t.state==="free").length,busy=tables.filter(t=>t.state==="busy").length,paid=tables.filter(t=>t.state==="paid").length,reserved=tables.filter(t=>t.state==="reserved").length;
- const areas=[...new Set(tables.map(t=>t.area||"Ισόγειο").filter(Boolean))];
- if(activeTableArea!=="Όλα"&&!areas.includes(activeTableArea))activeTableArea="Όλα";
- const visibleTables=activeTableArea==="Όλα"?tables:tables.filter(t=>(t.area||"Ισόγειο")===activeTableArea);
+ const areaLabel=value=>{
+  const raw=String(value||"").trim().toLocaleLowerCase("el");
+  const labels={"ισόγειο":"Ισόγειο","εσωτερικός χώρος":"Εσωτερικός χώρος","εσωτερικοσ χωροσ":"Εσωτερικός χώρος","εξωτερικός χώρος":"Εξωτερικός χώρος","εξωτερικοσ χωροσ":"Εξωτερικός χώρος","αυλή":"Αυλή","μπαλκόνι":"Μπαλκόνι","βεράντα":"Βεράντα","αίθουσα":"Αίθουσα","indoor":"Εσωτερικός χώρος","outdoor":"Εξωτερικός χώρος","terrace":"Βεράντα"};
+  return labels[raw]||"Χώρος τραπεζιών";
+ };
+ const areaKeys=[...new Set(tables.map(t=>String(t.area||"").trim()).filter(Boolean))];
+ const areas=areaKeys.map(key=>({key,label:areaLabel(key)})).filter((area,index,list)=>list.findIndex(x=>x.label===area.label)===index);
+ if(activeTableArea!=="Όλα"&&!areaKeys.includes(activeTableArea))activeTableArea="Όλα";
+ const visibleTables=activeTableArea==="Όλα"?tables:tables.filter(t=>String(t.area||"").trim()===activeTableArea);
  summary.hidden=false;help.hidden=false;
  summary.innerHTML=`<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${paid}</b> Πληρωμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
  grid.className="order-grid floorplan-grid";
- const areaTabs=`<div class="table-area-tabs" role="tablist" aria-label="Περιοχή τραπεζιών">${["Όλα",...areas].map(area=>`<button type="button" class="table-area-tab ${activeTableArea===area?"active":""}" data-table-area="${escapeCustomerText(area)}" role="tab" aria-selected="${activeTableArea===area}">${escapeCustomerText(area)}${area==="Όλα"?"":` <span>${tables.filter(t=>(t.area||"Ισόγειο")===area).length}</span>`}</button>`).join("")}</div>`;
+ const areaTabs=`<div class="table-area-tabs" role="tablist" aria-label="Περιοχή τραπεζιών"><button type="button" class="table-area-tab ${activeTableArea==="Όλα"?"active":""}" data-table-area="Όλα" role="tab" aria-selected="${activeTableArea==="Όλα"}">Όλα <span>${tables.length}</span></button>${areas.map(area=>`<button type="button" class="table-area-tab ${activeTableArea===area.key?"active":""}" data-table-area="${escapeCustomerText(area.key)}" role="tab" aria-selected="${activeTableArea===area.key}">${escapeCustomerText(area.label)} <span>${tables.filter(t=>String(t.area||"").trim()===area.key).length}</span></button>`).join("")}</div>`;
  const services=`<button class="table-service-tile" data-service-mode="takeaway"><span class="table-symbol">◈</span><strong>ΑΥΤΟ</strong><small>Take Away</small></button><button class="table-service-tile" data-service-mode="private"><span class="table-symbol">◇</span><strong>ΙΔΙΩΤΙΚΟ</strong><small>Χώρος / αίθουσα</small></button>`;
  const tiles=visibleTables.map(t=>`<button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${escapeCustomerText(t[0])}, ${escapeCustomerText(t.description)}" title="${escapeCustomerText(t.description)}"><span class="table-symbol">▤</span><strong>${escapeCustomerText(t[0])}</strong><small>${escapeCustomerText(t.label)}</small><span class="table-account">${escapeCustomerText(t[4])}</span></button>`).join("");
- const legend=`<div class="table-state-legend" aria-label="Υπόμνημα κατάστασης"><span><i class="free"></i> Ελεύθερο</span><span><i class="busy"></i> Κατειλημμένο</span><span><i class="paid"></i> Πληρωμένο</span></div>`;
+ const legend=`<div class="table-state-legend" aria-label="Υπόμνημα κατάστασης"><span><i class="free"></i> Ελεύθερο</span><span><i class="busy"></i> Κατειλημμένο</span><span><i class="partial"></i> Μερικώς πληρωμένο</span><span><i class="paid"></i> Πληρωμένο</span></div>`;
 
  grid.innerHTML=areaTabs+legend+`<div class="table-tile-grid">${services}${tiles||'<p class="table-area-empty">Δεν υπάρχουν τραπέζια σε αυτόν τον χώρο.</p>'}</div>`;
 }
