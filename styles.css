@@ -420,3 +420,5 @@ body.dark #itemForm label{color:#c2cec5}
   .main-content:has(#orderGrid.takeaway-layout) .topbar,
   .main-content:has(#orderGrid.delivery-board) .topbar{height:38px}
 }
+
+.table-config-action{border-style:dashed;color:var(--green);font-weight:700}.table-config-action:hover{background:var(--soft-green,#e8f2ec);border-color:var(--green)}
