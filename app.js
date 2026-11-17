@@ -39,8 +39,8 @@ function currentTables(){
   if(activeOrder&&receiptOrder){visualState="receipt-order";label="Απόδειξη και παραγγελία";description=label;}
   else if(activeOrder){visualState="busy";label="Κατειλημμένο";description="Ενεργή παραγγελία";}
   else if(receiptOrder){visualState="receipt";label="Απόδειξη";description="Έχει εκδοθεί απόδειξη";}
-  else if(!apiConfig.connected){visualState=savedStates[index]||item[2];label=visualState==="busy"?"Κατειλημμένο":visualState==="reserved"?"Κράτηση":"Ελεύθερο";description=label;}
-  else if(item[2]==="reserved"){visualState="reserved";label="Κράτηση";description="Υπάρχει κράτηση";}
+  else if(!apiConfig.connected){visualState=savedStates[index]||item[2];label=tableReceiptStateLabel(visualState);description=label;}
+  else if(item[2]==="reserved"){visualState="reserved";label=tableReceiptStateLabel(visualState);description="Υπάρχει κράτηση";}
   return {...item,state:visualState,label,description,index,activeOrder,receiptOrder};
  });
 }
