@@ -433,3 +433,10 @@ body.dark #itemForm label{color:#c2cec5}
 .table-setup-modal .modal-actions{margin-top:2px}
 .table-setup-modal button:disabled{opacity:.6;cursor:wait}
 body.dark .table-setup-modal form>label{color:var(--text)}
+
+.table-setup-modal [hidden]{display:none!important}
+.table-area-control,.table-tile-control{position:relative;display:inline-flex;align-items:center;gap:3px}
+.table-edit-button{display:inline-grid;place-items:center;min-width:25px;height:25px;padding:0 5px;border:1px solid var(--line);border-radius:7px;background:var(--canvas);color:var(--muted);font-size:13px;cursor:pointer}
+.table-edit-button:hover{border-color:var(--green);color:var(--green)}
+.table-edit-tile{position:absolute;top:-6px;right:-6px;z-index:2;width:23px;height:23px;min-width:23px;border-radius:50%;background:var(--panel);box-shadow:0 2px 8px #0002}
+.table-tile-control .table-tile{height:100%}
