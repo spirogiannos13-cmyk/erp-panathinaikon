@@ -280,7 +280,7 @@ api.MapPost("/orders/{id:int}/lines",async Task<IResult> (int id,CreateOrderLine
 api.MapGet("/orders/{id:int}/payments",async(int id,ClaimsPrincipal u,AppDbContext db)=>{var sid=int.Parse(u.FindFirstValue("store_id")!);if(!await db.Orders.AnyAsync(x=>x.Id==id&&x.StoreId==sid))return Results.NotFound();var rows=await db.OrderPayments.AsNoTracking().Where(x=>x.StoreId==sid&&x.SalesOrderId==id).OrderBy(x=>x.PaidAtUtc).Select(x=>new{x.Id,x.Amount,x.Method,x.Reference,x.PaidAtUtc}).ToListAsync();return Results.Ok(rows);});
 api.MapPost("/orders/{id:int}/payments",async Task<IResult> (int id,CreateOrderPaymentRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);var method=q.Method?.Trim();
- if(q.Amount<=0||method is null||!new[]{"Cash","Card","BankTransfer","Other"}.Contains(method))return Results.BadRequest(new{message="Καταχώρισε θετικό ποσό και έγκυρο τρόπο πληρωμής."});
+ if(q.Amount<=0||method is null||!new[]{"Cash","Card","IRIS"}.Contains(method))return Results.BadRequest(new{message="Καταχώρισε θετικό ποσό και έγκυρο τρόπο πληρωμής."});
  await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
  var order=await db.Orders.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
  if(order is null)return Results.NotFound();
@@ -291,6 +291,24 @@ api.MapPost("/orders/{id:int}/payments",async Task<IResult> (int id,CreateOrderP
  var payment=new OrderPayment{StoreId=sid,SalesOrderId=id,Amount=decimal.Round(q.Amount,2),Method=method,Reference=string.IsNullOrWhiteSpace(q.Reference)?null:q.Reference.Trim()};
  db.OrderPayments.Add(payment);await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{id}/payments/{payment.Id}",new{payment.Id,payment.Amount,payment.Method,payment.Reference,payment.PaidAtUtc,TotalPaid=paid+payment.Amount,Outstanding=order.Total-paid-payment.Amount});
+});
+api.MapPost("/orders/{id:int}/payments/batch",async Task<IResult> (int id,CreateOrderPaymentBatchRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(q.Payments is null||q.Payments.Count is <1 or >5)return Results.BadRequest(new{message="Η σύνθετη πληρωμή πρέπει να περιλαμβάνει από 1 έως 5 τρόπους."});
+ var allowed=new[]{"Cash","Card","IRIS"};
+ if(q.Payments.Any(x=>x.Amount<=0||x.Method is null||!allowed.Contains(x.Method.Trim())))return Results.BadRequest(new{message="Κάθε πληρωμή πρέπει να έχει θετικό ποσό και έγκυρο τρόπο πληρωμής."});
+ var total=decimal.Round(q.Payments.Sum(x=>x.Amount),2);
+ if(q.Payments.Any(x=>decimal.Round(x.Amount,2)!=x.Amount)||total<=0)return Results.BadRequest(new{message="Τα ποσά πρέπει να είναι θετικά με έως δύο δεκαδικά ψηφία."});
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var order=await db.Orders.SingleOrDefaultAsync(x=>x.Id==id&&x.StoreId==sid);
+ if(order is null)return Results.NotFound();
+ if(order.Status=="Cancelled")return Results.Conflict(new{message="Δεν μπορεί να καταχωριστεί πληρωμή σε ακυρωμένη παραγγελία."});
+ var paid=await db.OrderPayments.Where(x=>x.StoreId==sid&&x.SalesOrderId==id).SumAsync(x=>(decimal?)x.Amount)??0m;
+ var outstanding=order.Total-paid;
+ if(total>outstanding)return Results.Conflict(new{message=$"Το σύνολο ({total:0.00} €) υπερβαίνει το υπόλοιπο ({outstanding:0.00} €)."});
+ var rows=q.Payments.Select(x=>new OrderPayment{StoreId=sid,SalesOrderId=id,Amount=decimal.Round(x.Amount,2),Method=x.Method.Trim()}).ToList();
+ db.OrderPayments.AddRange(rows);await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Created($"/api/orders/{id}/payments",new{payments=rows.Select(x=>new{x.Id,x.Amount,x.Method,x.PaidAtUtc}),TotalPaid=paid+total,Outstanding=order.Total-paid-total});
 });
 api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);
