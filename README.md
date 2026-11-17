@@ -98,3 +98,12 @@ The project is evolving from the original dashboard prototype into a SQL-backed 
 - Reservations
 - Orders and Payments
 - Staff Management
+
+## Table plan state indicators
+
+- Green: no active order (free).
+- Yellow: an active table order exists.
+- Red: explicit receipt-issued metadata is present on an order.
+- Split yellow/red: both an active order and explicit receipt metadata exist.
+
+The current orders API does not yet persist or return receipt-issuance metadata. Until that backend capability is added, the frontend intentionally does not treat a fully paid balance as proof that a fiscal receipt was issued.

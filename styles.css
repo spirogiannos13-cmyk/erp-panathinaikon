@@ -255,3 +255,31 @@ body.dark #itemForm label{color:#c2cec5}
 #paymentEntryError{min-height:18px;color:#b43b32;font-size:11px;margin:8px 0}
 .payment-entry-modal .modal-actions{display:flex;justify-content:flex-end;gap:9px}
 @media(max-width:600px){.payment-entry-modes{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-entry-count{flex-wrap:wrap}.payment-entry-count label{min-width:100%}.payment-entry-line{grid-template-columns:1fr}.payment-entry-footer{grid-template-columns:1fr}}
+
+
+/* Clear, persistent table occupancy colors in the floor plan */
+.floorplan-grid .table-tile.free{background:#e8f5ec;border:1px solid #91c6a2;box-shadow:inset 0 0 0 1px #cce7d4}
+.floorplan-grid .table-tile.free .table-symbol,
+.floorplan-grid .table-tile.free>strong{color:#176b3b}
+.floorplan-grid .table-tile.busy{background:#fff4cf;border:1px solid #e7c45a;box-shadow:inset 0 0 0 1px #f8e7a8}
+.floorplan-grid .table-tile.busy .table-symbol,
+.floorplan-grid .table-tile.busy>strong{color:#8a6410}
+.floorplan-grid .table-tile.receipt{background:#fbe8e8;border:1px solid #dc8a8a;box-shadow:inset 0 0 0 1px #f2caca}
+.floorplan-grid .table-tile.receipt .table-symbol,
+.floorplan-grid .table-tile.receipt>strong{color:#a92727}
+.floorplan-grid .table-tile.receipt-order{background:linear-gradient(90deg,#fff0c4 0 50%,#f8dede 50% 100%);border:1px solid #d49a69;box-shadow:inset 0 0 0 1px #ead3ae}
+.floorplan-grid .table-tile.receipt-order .table-symbol,
+.floorplan-grid .table-tile.receipt-order>strong{color:#6f482d}
+.floorplan-grid .table-tile.reserved{background:var(--canvas);border:1px dashed #829bc0}
+.floorplan-grid .table-tile.free>small{color:#176b3b}
+.floorplan-grid .table-tile.busy>small{color:#8a6410}
+.floorplan-grid .table-tile.receipt>small{color:#a92727}
+.floorplan-grid .table-tile.receipt-order>small{color:#71482e}
+
+.table-state-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--canvas)}
+.table-state-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted,#718078);font-size:9px;font-weight:600}
+.table-state-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid #00000018}
+.table-state-legend i.free{background:#198754}
+.table-state-legend i.busy{background:#eabf32}
+.table-state-legend i.receipt{background:#d93636}
+.table-state-legend i.receipt-order{background:linear-gradient(90deg,#eabf32 0 50%,#d93636 50% 100%)}
