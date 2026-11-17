@@ -17,3 +17,6 @@ public sealed class OrderPayment { public long Id { get; set; } public int Store
 public sealed class TableReservation { public int Id { get; set; } public int StoreId { get; set; } public int? TableId { get; set; } public DiningTable? Table { get; set; } public int? CustomerId { get; set; } public Customer? Customer { get; set; } public string GuestName { get; set; } = ""; public string? Phone { get; set; } public int GuestCount { get; set; } public DateTime StartsAtLocal { get; set; } public int DurationMinutes { get; set; } = 120; public string Status { get; set; } = "Booked"; public string? Notes { get; set; } public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow; }
 
 public sealed class Supplier { public int Id { get; set; } public int StoreId { get; set; } public string Name { get; set; } = ""; public string? ContactName { get; set; } public string? Phone { get; set; } public string? Email { get; set; } public string? Address { get; set; } public string? TaxNumber { get; set; } public string? Notes { get; set; } public bool IsActive { get; set; } = true; public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow; }
+
+public sealed record CreateOrderPaymentBatchRequest(List<CreateOrderPaymentLineRequest> Payments);
+public sealed record CreateOrderPaymentLineRequest(decimal Amount,string Method);
