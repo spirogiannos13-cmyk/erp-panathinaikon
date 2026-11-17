@@ -323,3 +323,52 @@ body.dark #itemForm label{color:#c2cec5}
  .main-content:has(#orderGrid.floorplan-grid) .table-tile-grid{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px}
  .main-content:has(#orderGrid.floorplan-grid) .table-tile,.main-content:has(#orderGrid.floorplan-grid) .table-service-tile{min-height:94px}
 }
+
+/* Table view: remove redundant page headings and give the floor-plan canvas the space.
+   Tile dimensions and tile typography intentionally remain unchanged. */
+.main-content:has(#orderGrid.floorplan-grid){
+  width:auto;
+  max-width:none;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:0 18px 10px;
+}
+.main-content:has(#orderGrid.floorplan-grid) #ordersHeading{display:none}
+.main-content:has(#orderGrid.floorplan-grid) .topbar{height:42px;flex:none}
+.main-content:has(#orderGrid.floorplan-grid) .operations-section{
+  display:flex;
+  flex:1;
+  min-height:calc(100vh - 52px);
+  flex-direction:column;
+  margin-top:0;
+  padding-bottom:0;
+}
+.main-content:has(#orderGrid.floorplan-grid) .operations-section>.section-heading{display:none}
+.main-content:has(#orderGrid.floorplan-grid) .view-tabs{flex:none;margin:0 0 8px}
+.main-content:has(#orderGrid.floorplan-grid) .board-toolbar{flex:none;margin-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) .floorplan-summary{flex:none;margin-bottom:8px}
+.main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid{
+  display:block;
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:12px;
+  margin:0;
+}
+.main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid .table-tile-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(112px,1fr));
+  align-content:start;
+  gap:12px;
+}
+@media(max-width:900px){
+  .main-content:has(#orderGrid.floorplan-grid){padding:0 14px 8px}
+  .main-content:has(#orderGrid.floorplan-grid) .operations-section{min-height:calc(100vh - 50px)}
+}
+@media(max-width:600px){
+  .main-content:has(#orderGrid.floorplan-grid){padding:0 8px 6px}
+  .main-content:has(#orderGrid.floorplan-grid) .topbar{height:38px}
+  .main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid{padding:8px}
+  .main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid .table-tile-grid{gap:8px}
+}
