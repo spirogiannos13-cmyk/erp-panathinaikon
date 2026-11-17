@@ -21,7 +21,7 @@ let menu=defaultMenu.map(item=>({...item}));
 try{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
-let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderPhone="",orderAddress="",orderNote="",orderMode="takeaway",discountPercent=0,selectedCustomerId=null,itemsSearch="",stockSearch="",recipeSearch="",tableDiscounts={},tableOrderContext=null,tableOrderId=null,activeTableOrder=null,activeTableArea="Όλα";
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderPhone="",orderAddress="",orderNote="",orderMode="takeaway",discountPercent=0,selectedCustomerId=null,itemsSearch="",stockSearch="",recipeSearch="",tableDiscounts={},tableOrderContext=null,tableOrderId=null,activeTableOrder=null,activeTableArea="Όλα",floorplanEditMode=false;
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
@@ -65,9 +65,9 @@ function renderTables(){
  summary.hidden=false;help.hidden=false;
  summary.innerHTML=`<span><b>${tables.length}</b> Σύνολο</span><span><b>${free}</b> Ελεύθερα</span><span><b>${busy}</b> Κατειλημμένα</span><span><b>${paid}</b> Πληρωμένα</span><span><b>${reserved}</b> Κρατήσεις</span>`;
  grid.className="order-grid floorplan-grid";
- const areaTabs=`<div class="table-area-tabs" role="tablist" aria-label="Περιοχή τραπεζιών"><button type="button" class="table-area-tab ${activeTableArea==="Όλα"?"active":""}" data-table-area="Όλα" role="tab" aria-selected="${activeTableArea==="Όλα"}">Όλα <span>${tables.length}</span></button>${areas.map(area=>`<span class="table-area-control"><button type="button" class="table-area-tab ${activeTableArea===area.key?"active":""}" data-table-area="${escapeCustomerText(area.key)}" role="tab" aria-selected="${activeTableArea===area.key}">${escapeCustomerText(area.label)} <span>${tables.filter(t=>String(t.area||"").trim()===area.key).length}</span></button><button type="button" class="table-edit-button" data-edit-area="${area.id}" aria-label="Επεξεργασία χώρου ${escapeCustomerText(area.label)}" title="Επεξεργασία χώρου">✎</button></span>`).join("")}<button type="button" class="table-area-tab table-config-action" data-create-area>＋ Νέος χώρος</button><button type="button" class="table-area-tab table-config-action" data-create-table>＋ Νέο τραπέζι</button></div>`;
+ const areaTabs=`<div class="table-area-tabs ${floorplanEditMode?"is-editing":""}" role="tablist" aria-label="Περιοχή τραπεζιών"><button type="button" class="table-area-tab ${activeTableArea==="Όλα"?"active":""}" data-table-area="Όλα" role="tab" aria-selected="${activeTableArea==="Όλα"}">Όλα <span>${tables.length}</span></button>${areas.map(area=>`<span class="table-area-control" draggable="${floorplanEditMode}" data-area-drag="${area.id}"><button type="button" class="table-area-tab ${activeTableArea===area.key?"active":""}" data-table-area="${escapeCustomerText(area.key)}" role="tab" aria-selected="${activeTableArea===area.key}">${escapeCustomerText(area.label)} <span>${tables.filter(t=>String(t.area||"").trim()===area.key).length}</span></button><button type="button" class="table-edit-button" data-edit-area="${area.id}" ${floorplanEditMode?"":"hidden"} aria-label="Επεξεργασία χώρου ${escapeCustomerText(area.label)}" title="Επεξεργασία χώρου">✎</button></span>`).join("")}<button type="button" class="table-area-tab table-config-action" data-create-area>＋ Νέος χώρος</button><button type="button" class="table-area-tab table-config-action" data-create-table>＋ Νέο τραπέζι</button></div>`;
  const services=`<button class="table-service-tile" data-service-mode="takeaway"><span class="table-symbol">◈</span><strong>ΑΥΤΟ</strong><small>Take Away</small></button><button class="table-service-tile" data-service-mode="private"><span class="table-symbol">◇</span><strong>ΙΔΙΩΤΙΚΟ</strong><small>Χώρος / αίθουσα</small></button>`;
- const tiles=visibleTables.map(t=>`<span class="table-tile-control"><button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${escapeCustomerText(t[0])}, ${escapeCustomerText(t.description)}" title="${escapeCustomerText(t.description)}"><span class="table-symbol">▤</span><strong>${escapeCustomerText(t[0])}</strong><small>${escapeCustomerText(t.label)}</small><span class="table-account">${escapeCustomerText(t[4])}</span></button><button type="button" class="table-edit-button table-edit-tile" data-edit-table="${t.id}" aria-label="Επεξεργασία ${escapeCustomerText(t[0])}" title="Επεξεργασία τραπεζιού">✎</button></span>`).join("");
+ const tiles=visibleTables.map(t=>`<span class="table-tile-control ${floorplanEditMode?"is-draggable":""}" draggable="${floorplanEditMode}" data-table-drag="${t.id}"><button class="table-tile ${t.state}" data-table-index="${t.index}" aria-label="${escapeCustomerText(t[0])}, ${escapeCustomerText(t.description)}" title="${escapeCustomerText(t.description)}"><span class="table-symbol">▤</span><strong>${escapeCustomerText(t[0])}</strong><small>${escapeCustomerText(t.label)}</small><span class="table-account">${escapeCustomerText(t[4])}</span></button><button type="button" class="table-edit-button table-edit-tile" data-edit-table="${t.id}" ${floorplanEditMode?"":"hidden"} aria-label="Επεξεργασία ${escapeCustomerText(t[0])}" title="Επεξεργασία τραπεζιού">✎</button></span>`).join("");
  const legend=`<div class="table-state-legend" aria-label="Υπόμνημα κατάστασης"><span><i class="free"></i> Ελεύθερο</span><span><i class="busy"></i> Κατειλημμένο</span><span><i class="partial"></i> Μερικώς πληρωμένο</span><span><i class="paid"></i> Πληρωμένο</span></div>`;
 
  grid.innerHTML=areaTabs+legend+`<div class="table-tile-grid">${services}${tiles||'<p class="table-area-empty">Δεν υπάρχουν τραπέζια σε αυτόν τον χώρο.</p>'}</div>`;
@@ -522,6 +522,54 @@ document.querySelector("#tableSetupForm").addEventListener("submit",async event=
    else{const area=(apiConfig.tableAreas||[]).find(item=>item.id===areaId);if(!area)throw new Error("Επίλεξε έναν διαθέσιμο χώρο.");await apiRequest(isEdit?"/api/tables/"+recordId:"/api/tables",{method:isEdit?"PUT":"POST",body:JSON.stringify({name,capacity,areaId})});activeTableArea=area.name;await loadSqlData();renderTables();closeTableSetupModal();showToast(isEdit?"Το τραπέζι ενημερώθηκε.":"Το τραπέζι αποθηκεύτηκε στον χώρο "+area.name+".");}
   }catch(err){error.textContent=err.message;}finally{submit.disabled=false;}
 });
+
+
+document.querySelector("#floorplanEditToggle").addEventListener("click",()=>{
+ floorplanEditMode=!floorplanEditMode;
+ const button=document.querySelector("#floorplanEditToggle");
+ button.textContent=floorplanEditMode?"✓ Τέλος επεξεργασίας":"✎ Επεξεργασία κάτοψης";
+ button.classList.toggle("active",floorplanEditMode);
+ button.setAttribute("aria-pressed",String(floorplanEditMode));
+ renderTables();
+});
+let floorplanDrag=null;
+grid.addEventListener("dragstart",event=>{
+ if(!floorplanEditMode)return;
+ const area=event.target.closest("[data-area-drag]"),table=event.target.closest("[data-table-drag]");
+ if(area){floorplanDrag={kind:"area",id:Number(area.dataset.areaDrag)};event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain","area:"+floorplanDrag.id);area.classList.add("dragging");return;}
+ if(table){floorplanDrag={kind:"table",id:Number(table.dataset.tableDrag)};event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain","table:"+floorplanDrag.id);table.classList.add("dragging");}
+});
+grid.addEventListener("dragover",event=>{
+ if(!floorplanEditMode||!floorplanDrag)return;
+ const area=event.target.closest("[data-area-drag]"),table=event.target.closest("[data-table-drag]");
+ if((floorplanDrag.kind==="area"&&area)||(floorplanDrag.kind==="table"&&(area||table))){event.preventDefault();event.dataTransfer.dropEffect="move";}
+});
+grid.addEventListener("drop",async event=>{
+ if(!floorplanEditMode||!floorplanDrag)return;
+ event.preventDefault();const dragged=floorplanDrag;floorplanDrag=null;
+ const areaTarget=event.target.closest("[data-area-drag]"),tableTarget=event.target.closest("[data-table-drag]");
+ if(dragged.kind==="area"&&areaTarget){
+  const targetId=Number(areaTarget.dataset.areaDrag);if(targetId===dragged.id)return;
+  const ordered=[...(apiConfig.tableAreas||[])];const from=ordered.findIndex(x=>x.id===dragged.id),to=ordered.findIndex(x=>x.id===targetId);if(from<0||to<0)return;
+  const [item]=ordered.splice(from,1);ordered.splice(to,0,item);
+  try{await apiRequest("/api/table-areas/reorder",{method:"PUT",body:JSON.stringify({ids:ordered.map(x=>x.id)})});await loadSqlData();floorplanEditMode=true;renderTables();}
+  catch(error){showToast(error.message);}return;
+ }
+ if(dragged.kind==="table"){
+  const table=apiConfig.tables.find(x=>x.id===dragged.id);if(!table)return;
+  let targetAreaId=areaTarget?Number(areaTarget.dataset.areaDrag):table.areaId;
+  if(tableTarget){const targetId=Number(tableTarget.dataset.tableDrag);if(targetId===dragged.id)return;const target=apiConfig.tables.find(x=>x.id===targetId);if(!target)return;targetAreaId=target.areaId;}
+  const sameArea=apiConfig.tables.filter(x=>x.areaId===targetAreaId&&x.id!==table.id).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  let insertAt=sameArea.length;
+  if(tableTarget){const targetIndex=sameArea.findIndex(x=>x.id===Number(tableTarget.dataset.tableDrag));if(targetIndex>=0)insertAt=targetIndex;}
+  sameArea.splice(insertAt,0,{...table,areaId:targetAreaId});
+  try{
+   await apiRequest("/api/tables/reorder",{method:"PUT",body:JSON.stringify({items:sameArea.map((x,index)=>({id:x.id,areaId:targetAreaId,sortOrder:index+1}))})});
+   await loadSqlData();floorplanEditMode=true;activeTableArea="Όλα";renderTables();
+  }catch(error){showToast(error.message);}
+ }
+});
+grid.addEventListener("dragend",()=>{grid.querySelectorAll(".dragging").forEach(x=>x.classList.remove("dragging"));floorplanDrag=null;});
 
 grid.addEventListener("change",event=>{if(event.target.id==="existingCustomerSelect"){const customer=apiConfig.customers.find(c=>c.id===Number(event.target.value));if(customer){selectedCustomerId=customer.id;orderCustomer=customer.name;orderPhone=customer.phone||"";orderAddress=customer.address||"";}else{selectedCustomerId=null;orderCustomer="";orderPhone="";orderAddress="";}renderTakeaway();}});
 grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput"){orderCustomer=event.target.value;selectedCustomerId=null;}if(event.target.id==="orderPhoneInput")orderPhone=event.target.value;if(event.target.id==="orderAddressInput")orderAddress=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;if(event.target.id==="orderDiscountInput"){discountPercent=Math.min(100,Math.max(0,Number(event.target.value)||0));}});

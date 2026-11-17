@@ -440,3 +440,8 @@ body.dark .table-setup-modal form>label{color:var(--text)}
 .table-edit-button:hover{border-color:var(--green);color:var(--green)}
 .table-edit-tile{position:absolute;top:-6px;right:-6px;z-index:2;width:23px;height:23px;min-width:23px;border-radius:50%;background:var(--panel);box-shadow:0 2px 8px #0002}
 .table-tile-control .table-tile{height:100%}
+
+.table-area-tabs.is-editing .table-area-control,.table-area-tabs.is-editing .table-tile-control{cursor:grab;touch-action:pan-y}
+.table-area-control.dragging,.table-tile-control.dragging{opacity:.45;outline:2px dashed var(--green);outline-offset:3px}
+#floorplanEditToggle.active{background:var(--green);color:#fff;border-color:var(--green)}
+.table-edit-button[hidden]{display:none!important}
