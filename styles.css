@@ -372,3 +372,51 @@ body.dark #itemForm label{color:#c2cec5}
   .main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid{padding:8px}
   .main-content:has(#orderGrid.floorplan-grid) #orderGrid.floorplan-grid .table-tile-grid{gap:8px}
 }
+
+/* Take Away and Delivery: remove redundant headings and expand the work area.
+   Existing product tiles, delivery cards, controls and their dimensions are untouched. */
+.main-content:has(#orderGrid.takeaway-layout),
+.main-content:has(#orderGrid.delivery-board){
+  width:auto;
+  max-width:none;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:0 18px 10px;
+}
+.main-content:has(#orderGrid.takeaway-layout) #ordersHeading,
+.main-content:has(#orderGrid.delivery-board) #ordersHeading{display:none}
+.main-content:has(#orderGrid.takeaway-layout) .topbar,
+.main-content:has(#orderGrid.delivery-board) .topbar{height:42px;flex:none}
+.main-content:has(#orderGrid.takeaway-layout) .operations-section,
+.main-content:has(#orderGrid.delivery-board) .operations-section{
+  display:flex;
+  flex:1;
+  min-height:calc(100vh - 52px);
+  flex-direction:column;
+  margin-top:0;
+  padding-bottom:0;
+}
+.main-content:has(#orderGrid.takeaway-layout) .operations-section>.section-heading,
+.main-content:has(#orderGrid.delivery-board) .operations-section>.section-heading{display:none}
+.main-content:has(#orderGrid.takeaway-layout) .view-tabs,
+.main-content:has(#orderGrid.delivery-board) .view-tabs{flex:none;margin:0 0 8px}
+.main-content:has(#orderGrid.takeaway-layout) #orderGrid.takeaway-layout,
+.main-content:has(#orderGrid.delivery-board) #orderGrid.delivery-board{
+  flex:1;
+  min-height:0;
+  margin-top:0;
+  overflow:auto;
+}
+@media(max-width:900px){
+  .main-content:has(#orderGrid.takeaway-layout),
+  .main-content:has(#orderGrid.delivery-board){padding:0 14px 8px}
+  .main-content:has(#orderGrid.takeaway-layout) .operations-section,
+  .main-content:has(#orderGrid.delivery-board) .operations-section{min-height:calc(100vh - 50px)}
+}
+@media(max-width:600px){
+  .main-content:has(#orderGrid.takeaway-layout),
+  .main-content:has(#orderGrid.delivery-board){padding:0 8px 6px}
+  .main-content:has(#orderGrid.takeaway-layout) .topbar,
+  .main-content:has(#orderGrid.delivery-board) .topbar{height:38px}
+}
