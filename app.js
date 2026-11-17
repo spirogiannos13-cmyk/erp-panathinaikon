@@ -501,7 +501,7 @@ function closeTable(){tableModal.hidden=true;}
 function openTableSetupModal(kind){
  const modal=document.querySelector("#tableSetupModal"),form=document.querySelector("#tableSetupForm"),areaField=document.querySelector("#tableSetupAreaField"),areaSelect=document.querySelector("#tableSetupArea"),title=document.querySelector("#tableSetupTitle"),eyebrow=document.querySelector("#tableSetupEyebrow"),nameInput=document.querySelector("#tableSetupName"),error=document.querySelector("#tableSetupError");
  const areas=apiConfig.tableAreas||[];form.dataset.kind=kind;form.reset();error.textContent="";
- const isArea=kind==="area";title.textContent=isArea?"Νέος χώρος":"Νέο τραπέζι";eyebrow.textContent=isArea?"ΔΙΑΧΕΙΡΙΣΗ ΧΩΡΩΝ":"ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΩΝ";areaField.hidden=isArea;
+ const isArea=kind==="area";title.textContent=isArea?"Νέος χώρος":"Νέο τραπέζι";eyebrow.textContent=isArea?"ΔΙΑΧΕΙΡΙΣΗ ΧΩΡΩΝ":"ΔΙΑΧΕΙΡΙΣΗ ΤΡΑΠΕΖΙΩΝ";areaField.hidden=isArea;areaSelect.required=!isArea;nameInput.maxLength=isArea?80:40;
  areaSelect.innerHTML=areas.map(area=>"<option value=\""+area.id+"\">"+escapeCustomerText(area.name)+"</option>").join("");
  nameInput.placeholder=isArea?"π.χ. Αυλή ή Όροφος":"π.χ. Τραπέζι 13";modal.hidden=false;nameInput.focus();
 }
