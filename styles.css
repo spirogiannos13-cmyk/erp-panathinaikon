@@ -445,3 +445,10 @@ body.dark .table-setup-modal form>label{color:var(--text)}
 .table-area-control.dragging,.table-tile-control.dragging{opacity:.45;outline:2px dashed var(--green);outline-offset:3px}
 #floorplanEditToggle.active{background:var(--green);color:#fff;border-color:var(--green)}
 .table-edit-button[hidden]{display:none!important}
+
+/* Clear drop feedback for moving tables between floor tabs */
+.table-area-tab.drop-target{outline:2px dashed var(--green);outline-offset:3px;background:color-mix(in srgb,var(--green) 14%,var(--panel));color:var(--green)}
+.table-tile.drop-target{outline:3px dashed var(--green);outline-offset:3px;transform:scale(1.025)}
+.table-tile-control.dragging,.table-area-control.dragging{opacity:.4}
+.table-area-tab[draggable="true"],.table-tile[draggable="true"]{cursor:grab}
+.table-area-tab[draggable="true"]:active,.table-tile[draggable="true"]:active{cursor:grabbing}
