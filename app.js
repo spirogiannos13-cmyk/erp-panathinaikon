@@ -31,8 +31,8 @@ function currentTables(){
  return boards.tables.items.map((item,index)=>{
   const tableOrders=apiConfig.connected&&item.id?tableOrdersFor(item.id):[];
   const activeOrder=tableOrders.find(order=>["Open","Preparing"].includes(order.status));
-  // The current API does not persist receipt issuance. Paid-but-open orders must not be
-  // mistaken for fiscal receipts; show the order as occupied until receipt data exists.
+  // No real receipt-issuance data is exposed by the current API, so only show
+  // receipt colors when the backend later supplies explicit receipt metadata.
   const receiptOrder=tableOrders.find(tableHasReceipt);
   let visualState="free",label="Ελεύθερο",description="Ελεύθερο τραπέζι";
   if(activeOrder&&receiptOrder){visualState="receipt-order";label="Απόδειξη και παραγγελία";description=label;}
