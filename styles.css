@@ -275,3 +275,11 @@ body.dark #itemForm label{color:#c2cec5}
 .floorplan-grid .table-tile.busy>small{color:#8a6410}
 .floorplan-grid .table-tile.receipt>small{color:#a92727}
 .floorplan-grid .table-tile.receipt-order>small{color:#71482e}
+
+.table-state-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--canvas)}
+.table-state-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted,#718078);font-size:9px;font-weight:600}
+.table-state-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid #00000018}
+.table-state-legend i.free{background:#198754}
+.table-state-legend i.busy{background:#eabf32}
+.table-state-legend i.receipt{background:#d93636}
+.table-state-legend i.receipt-order{background:linear-gradient(90deg,#eabf32 0 50%,#d93636 50% 100%)}
