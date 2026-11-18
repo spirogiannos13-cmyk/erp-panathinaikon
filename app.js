@@ -67,7 +67,7 @@ function renderTables(){
  grid.className="order-grid floorplan-grid";
  const areaTabs=`<div class="table-area-tabs ${floorplanEditMode?"is-editing":""}" role="tablist" aria-label="Περιοχή τραπεζιών"><button type="button" class="table-area-tab ${activeTableArea==="Όλα"?"active":""}" data-table-area="Όλα" role="tab" aria-selected="${activeTableArea==="Όλα"}">Όλα <span>${tables.length}</span></button>${areas.map(area=>`<span class="table-area-control" draggable="${floorplanEditMode}" data-area-drag="${area.id}"><button type="button" class="table-area-tab ${activeTableArea===area.key?"active":""}" data-table-area="${escapeCustomerText(area.key)}" data-area-drop="${area.id}" role="tab" aria-selected="${activeTableArea===area.key}">${escapeCustomerText(area.label)} <span>${tables.filter(t=>String(t.area||"").trim()===area.key).length}</span></button><button type="button" class="table-edit-button" data-edit-area="${area.id}" ${floorplanEditMode?"":"hidden"} aria-label="Επεξεργασία χώρου ${escapeCustomerText(area.label)}" title="Επεξεργασία χώρου">✎</button></span>`).join("")}<button type="button" class="table-area-tab table-config-action" data-create-area>＋ Νέος χώρος</button><button type="button" class="table-area-tab table-config-action" data-create-table>＋ Νέο τραπέζι</button></div>`;
  const services=`<button class="table-service-tile" data-service-mode="takeaway"><span class="table-symbol">◈</span><strong>ΑΥΤΟ</strong><small>Take Away</small></button><button class="table-service-tile" data-service-mode="private"><span class="table-symbol">◇</span><strong>ΙΔΙΩΤΙΚΟ</strong><small>Χώρος / αίθουσα</small></button>`;
- const mergeGroups=apiConfig.tableMerges||[];const memberGroup=new Map();mergeGroups.forEach(g=>(g.members||[]).forEach(m=>memberGroup.set(m.id,g)));const drawnGroups=new Set();const tiles=visibleTables.filter(t=>{const g=memberGroup.get(t.id);if(!g)return true;if(drawnGroups.has(g.id))return false;drawnGroups.add(g.id);return true;}).map(t=>{const g=memberGroup.get(t.id),members=g?(g.members||[]):[{id:t.id,name:t[0]}],anchor=g?apiConfig.tables.find(x=>x.id===g.anchorTableId)||t:t;const names=members.map(m=>m.name).join(" + ");const tileClass=members.map(m=>tables.find(x=>x.id===m.id)?.state||"free").reduce((s,x)=>x==="busy"?"busy":s==="busy"?s:x==="partially-paid"?"partially-paid":s==="partially-paid"?s:x==="paid"?"paid":s,"free");return `<span class="table-tile-control ${floorplanEditMode?"is-draggable":""}" draggable="${floorplanEditMode}" data-table-drag="${anchor.id}"><button class="table-tile ${g?"merged-table":""} ${tileClass}" data-table-drag="${anchor.id}" draggable="${floorplanEditMode}" data-table-index="${anchor.index}" aria-label="${escapeCustomerText(names)}" title="${escapeCustomerText(g?"Συγχωνευμένα τραπέζια: "+names:t.description)}"><span class="table-symbol">▤</span><strong>${escapeCustomerText(names)}</strong><small>${g?"Συγχωνευμένο":escapeCustomerText(t.label)}</small><span class="table-account">${members.length} τραπέζια</span></button><button type="button" class="table-edit-button table-edit-tile" data-edit-table="${anchor.id}" ${floorplanEditMode?"":"hidden"} aria-label="Επεξεργασία ${escapeCustomerText(names)}" title="Επεξεργασία τραπεζιού">✎</button></span>`;}).join("");
+ const mergeGroups=apiConfig.tableMerges||[];const memberGroup=new Map();mergeGroups.forEach(g=>(g.members||[]).forEach(m=>memberGroup.set(m.id,g)));const drawnGroups=new Set();const tiles=visibleTables.filter(t=>{const g=memberGroup.get(t.id);if(!g)return true;if(drawnGroups.has(g.id))return false;drawnGroups.add(g.id);return true;}).map(t=>{const g=memberGroup.get(t.id),members=g?(g.members||[]):[{id:t.id,name:t[0]}],anchor=g?apiConfig.tables.find(x=>x.id===g.anchorTableId)||t:t;const names=members.map(m=>m.name).join(" + ");const tileClass=members.map(m=>tables.find(x=>x.id===m.id)?.state||"free").reduce((s,x)=>x==="busy"?"busy":s==="busy"?s:x==="partially-paid"?"partially-paid":s==="partially-paid"?s:x==="paid"?"paid":s,"free");return `<span class="table-tile-control ${floorplanEditMode?"is-draggable":""}" draggable="${floorplanEditMode}" data-table-drag="${anchor.id}"><button class="table-tile ${g?"merged-table":""} ${tileClass} ${selectedTableMergeIds.has(anchor.id)?"merge-selected":""}" data-table-drag="${anchor.id}" data-merge-select-id="${anchor.id}" data-merge-grouped="${g?"true":"false"}" draggable="${floorplanEditMode}" data-table-index="${anchor.index}" aria-label="${escapeCustomerText(names)}" title="${escapeCustomerText(g?"Συγχωνευμένα τραπέζια: "+names:t.description)}"><span class="table-symbol">▤</span><strong>${escapeCustomerText(names)}</strong><small>${g?"Συγχωνευμένο":escapeCustomerText(t.label)}</small><span class="table-account">${members.length} τραπέζια</span></button><button type="button" class="table-edit-button table-edit-tile" data-edit-table="${anchor.id}" ${floorplanEditMode?"":"hidden"} aria-label="Επεξεργασία ${escapeCustomerText(names)}" title="Επεξεργασία τραπεζιού">✎</button></span>`;}).join("");
  const legend=`<div class="table-state-legend" aria-label="Υπόμνημα κατάστασης"><span><i class="free"></i> Ελεύθερο</span><span><i class="busy"></i> Κατειλημμένο</span><span><i class="partial"></i> Μερικώς πληρωμένο</span><span><i class="paid"></i> Πληρωμένο</span></div>`;
 
  grid.innerHTML=areaTabs+legend+`<div class="table-tile-grid">${services}${tiles||'<p class="table-area-empty">Δεν υπάρχουν τραπέζια σε αυτόν τον χώρο.</p>'}</div>`;
@@ -522,24 +522,42 @@ document.querySelector("#tableSetupForm").addEventListener("submit",async event=
 });
 
 
+function updateTableMergeControls(){
+ const toggle=document.querySelector("#tableMergeModeToggle"),confirm=document.querySelector("#tableMergeConfirm"),cancel=document.querySelector("#tableMergeCancel");
+ if(!toggle||!confirm||!cancel)return;
+ toggle.hidden=tableMergeSelectionMode;confirm.hidden=!tableMergeSelectionMode;cancel.hidden=!tableMergeSelectionMode;
+ confirm.textContent="Επιβεβαίωση ("+selectedTableMergeIds.size+")";confirm.disabled=selectedTableMergeIds.size<2;
+ toggle.setAttribute("aria-pressed",String(tableMergeSelectionMode));
+}
+function cancelTableMergeSelection(){tableMergeSelectionMode=false;selectedTableMergeIds.clear();updateTableMergeControls();}
 document.querySelector("#floorplanEditToggle").addEventListener("click",()=>{
  floorplanEditMode=!floorplanEditMode;
  const button=document.querySelector("#floorplanEditToggle");
  button.textContent=floorplanEditMode?"✓ Τέλος επεξεργασίας":"✎ Επεξεργασία κάτοψης";
- button.classList.toggle("active",floorplanEditMode);
- button.setAttribute("aria-pressed",String(floorplanEditMode));
+ button.classList.toggle("active",floorplanEditMode);button.setAttribute("aria-pressed",String(floorplanEditMode));
+ if(floorplanEditMode&&tableMergeSelectionMode)cancelTableMergeSelection();
  renderTables();
 });
-let floorplanDrag=null,tableMergeDragId=null;
+document.querySelector("#tableMergeModeToggle").addEventListener("click",()=>{
+ if(floorplanEditMode){floorplanEditMode=false;const edit=document.querySelector("#floorplanEditToggle");edit.textContent="✎ Επεξεργασία κάτοψης";edit.classList.remove("active");edit.setAttribute("aria-pressed","false");}
+ tableMergeSelectionMode=true;selectedTableMergeIds.clear();updateTableMergeControls();renderTables();showToast("Επίλεξε με κλικ τα τραπέζια που θέλεις να συγχωνεύσεις.");
+});
+document.querySelector("#tableMergeCancel").addEventListener("click",()=>{cancelTableMergeSelection();renderTables();});
+document.querySelector("#tableMergeConfirm").addEventListener("click",async()=>{
+ if(selectedTableMergeIds.size<2)return;
+ const button=document.querySelector("#tableMergeConfirm");button.disabled=true;button.textContent="Γίνεται συγχώνευση…";
+ try{await apiRequest("/api/table-merges",{method:"POST",body:JSON.stringify({tableIds:[...selectedTableMergeIds]})});cancelTableMergeSelection();await loadSqlData();showToast("Τα τραπέζια συγχωνεύτηκαν επιτυχώς.");}
+ catch(error){showToast(error.message);updateTableMergeControls();}
+});
+let floorplanDrag=null,tableMergeSelectionMode=false,selectedTableMergeIds=new Set();updateTableMergeControls();
 function clearFloorplanDropTargets(){grid.querySelectorAll(".drop-target").forEach(element=>element.classList.remove("drop-target"));}
 grid.addEventListener("dragstart",event=>{
- if(!floorplanEditMode){const source=event.target.closest("[data-table-drag]");if(!source)return;tableMergeDragId=Number(source.dataset.tableDrag);event.dataTransfer.effectAllowed="copy";event.dataTransfer.setData("text/plain","merge:"+tableMergeDragId);return;}
+ if(!floorplanEditMode)return;
  const area=event.target.closest("[data-area-drop]"),table=event.target.closest("[data-table-drag]");
  if(area){floorplanDrag={kind:"area",id:Number(area.dataset.areaDrop)};event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain","area:"+floorplanDrag.id);area.classList.add("dragging");return;}
  if(table){floorplanDrag={kind:"table",id:Number(table.dataset.tableDrag)};event.dataTransfer.effectAllowed="move";event.dataTransfer.setData("text/plain","table:"+floorplanDrag.id);table.closest(".table-tile-control")?.classList.add("dragging");}
 });
 grid.addEventListener("dragover",event=>{
- if(!floorplanEditMode&&tableMergeDragId){const target=event.target.closest("[data-table-drag]");if(target&&Number(target.dataset.tableDrag)!==tableMergeDragId){event.preventDefault();event.dataTransfer.dropEffect="copy";clearFloorplanDropTargets();target.classList.add("drop-target");}return;}
  if(!floorplanEditMode||!floorplanDrag||floorplanDrag.kind!=="table")return;
  const area=event.target.closest("[data-area-drop]"),table=event.target.closest("[data-table-drag]");
  if(area||table){event.preventDefault();event.dataTransfer.dropEffect="move";clearFloorplanDropTargets();(area||table).classList.add("drop-target");}
@@ -554,7 +572,6 @@ grid.addEventListener("dragleave",event=>{
  if(target&&!target.contains(event.relatedTarget))target.classList.remove("drop-target");
 });
 grid.addEventListener("drop",async event=>{
- if(!floorplanEditMode&&tableMergeDragId){const sourceId=tableMergeDragId,target=event.target.closest("[data-table-drag]");tableMergeDragId=null;clearFloorplanDropTargets();if(!target||Number(target.dataset.tableDrag)===sourceId)return;event.preventDefault();try{await apiRequest("/api/table-merges",{method:"POST",body:JSON.stringify({tableIds:[sourceId,Number(target.dataset.tableDrag)]})});await loadSqlData();showToast("Τα τραπέζια συγχωνεύτηκαν.");}catch(error){showToast(error.message);}return;}
  if(!floorplanEditMode||!floorplanDrag)return;
  const dragged=floorplanDrag;floorplanDrag=null;clearFloorplanDropTargets();
  const areaTarget=event.target.closest("[data-area-drop]"),tableTarget=event.target.closest("[data-table-drag]");
@@ -598,11 +615,13 @@ grid.addEventListener("drop",async event=>{
   catch(error){showToast(error.message);}
  }
 });
-grid.addEventListener("dragend",()=>{tableMergeDragId=null;grid.querySelectorAll(".dragging").forEach(x=>x.classList.remove("dragging"));clearFloorplanDropTargets();floorplanDrag=null;});
+grid.addEventListener("dragend",()=>{grid.querySelectorAll(".dragging").forEach(x=>x.classList.remove("dragging"));clearFloorplanDropTargets();floorplanDrag=null;});
 
 grid.addEventListener("change",event=>{if(event.target.id==="existingCustomerSelect"){const customer=apiConfig.customers.find(c=>c.id===Number(event.target.value));if(customer){selectedCustomerId=customer.id;orderCustomer=customer.name;orderPhone=customer.phone||"";orderAddress=customer.address||"";}else{selectedCustomerId=null;orderCustomer="";orderPhone="";orderAddress="";}renderTakeaway();}});
 grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput"){orderCustomer=event.target.value;selectedCustomerId=null;}if(event.target.id==="orderPhoneInput")orderPhone=event.target.value;if(event.target.id==="orderAddressInput")orderAddress=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;if(event.target.id==="orderDiscountInput"){discountPercent=Math.min(100,Math.max(0,Number(event.target.value)||0));}});
 grid.addEventListener("click",event=>{
+  const mergeTile=event.target.closest("[data-merge-select-id]");
+  if(tableMergeSelectionMode&&mergeTile){event.preventDefault();event.stopPropagation();if(mergeTile.dataset.mergeGrouped==="true"){showToast("Επίλεξε μεμονωμένα τραπέζια, όχι ήδη συγχωνευμένη ομάδα.");return;}const id=Number(mergeTile.dataset.mergeSelectId);if(selectedTableMergeIds.has(id))selectedTableMergeIds.delete(id);else selectedTableMergeIds.add(id);updateTableMergeControls();renderTables();return;}
   const editArea=event.target.closest("[data-edit-area]");if(editArea){const area=(apiConfig.tableAreas||[]).find(x=>x.id===Number(editArea.dataset.editArea));if(area)openTableSetupModal("edit-area",area);return;}
   const editTable=event.target.closest("[data-edit-table]");if(editTable){const table=apiConfig.tables.find(x=>x.id===Number(editTable.dataset.editTable));if(table)openTableSetupModal("edit-table",table);return;}
   const createArea=event.target.closest("[data-create-area]");if(createArea){if(!apiConfig.connected){showToast("Συνδέσου στο SQL Server για να δημιουργήσεις χώρο.");return;}openTableSetupModal("area");return;}
