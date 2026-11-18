@@ -615,7 +615,7 @@ grid.addEventListener("drop",async event=>{
   catch(error){showToast(error.message);}
  }
 });
-grid.addEventListener("dragend",()=>{tableMergeDragId=null;grid.querySelectorAll(".dragging").forEach(x=>x.classList.remove("dragging"));clearFloorplanDropTargets();floorplanDrag=null;});
+grid.addEventListener("dragend",()=>{grid.querySelectorAll(".dragging").forEach(x=>x.classList.remove("dragging"));clearFloorplanDropTargets();floorplanDrag=null;});
 
 grid.addEventListener("change",event=>{if(event.target.id==="existingCustomerSelect"){const customer=apiConfig.customers.find(c=>c.id===Number(event.target.value));if(customer){selectedCustomerId=customer.id;orderCustomer=customer.name;orderPhone=customer.phone||"";orderAddress=customer.address||"";}else{selectedCustomerId=null;orderCustomer="";orderPhone="";orderAddress="";}renderTakeaway();}});
 grid.addEventListener("input",event=>{if(event.target.id==="productSearch"){productSearch=event.target.value;const position=productSearch.length;renderTakeaway();const input=document.querySelector("#productSearch");input.focus();input.setSelectionRange(position,position);}if(event.target.id==="orderCustomerInput"){orderCustomer=event.target.value;selectedCustomerId=null;}if(event.target.id==="orderPhoneInput")orderPhone=event.target.value;if(event.target.id==="orderAddressInput")orderAddress=event.target.value;if(event.target.id==="orderNoteInput")orderNote=event.target.value;if(event.target.id==="orderDiscountInput"){discountPercent=Math.min(100,Math.max(0,Number(event.target.value)||0));}});
