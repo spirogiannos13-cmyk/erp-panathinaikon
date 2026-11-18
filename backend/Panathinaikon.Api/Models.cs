@@ -25,3 +25,7 @@ public sealed record CreateOrderPaymentLineRequest(decimal Amount,string Method)
 public sealed record ReorderTableAreasRequest(List<int> Ids);
 public sealed record ReorderDiningTableItem(int Id,int AreaId,int SortOrder);
 public sealed record ReorderDiningTablesRequest(List<ReorderDiningTableItem> Items);
+
+public sealed class TableMergeGroup { public int Id { get; set; } public int StoreId { get; set; } public int AnchorTableId { get; set; } public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow; public bool IsActive { get; set; } = true; }
+public sealed class TableMergeMember { public int Id { get; set; } public int GroupId { get; set; } public int TableId { get; set; } }
+public sealed record MergeTablesRequest(List<int> TableIds);

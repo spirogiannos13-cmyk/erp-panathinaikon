@@ -452,3 +452,5 @@ body.dark .table-setup-modal form>label{color:var(--text)}
 .table-tile-control.dragging,.table-area-control.dragging{opacity:.4}
 .table-area-tab[draggable="true"],.table-tile[draggable="true"]{cursor:grab}
 .table-area-tab[draggable="true"]:active,.table-tile[draggable="true"]:active{cursor:grabbing}
+
+.merged-table{border:2px solid var(--green)!important;box-shadow:inset 0 0 0 2px #ffffff88,0 5px 16px #145a351c}.merged-order-section{padding:10px 0;border-bottom:1px solid var(--line)}.merged-order-section h3{font-size:11px;color:var(--green);margin:0 0 8px}.merged-order-section>small{display:block;margin-top:8px;color:var(--muted);font-size:10px}
