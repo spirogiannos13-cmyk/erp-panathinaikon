@@ -366,6 +366,7 @@ api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderSt
  order.Status=q.Status;
  if(q.Status is "Delivered" or "Closed" or "Cancelled")order.ClosedAtUtc=DateTime.UtcNow;
  if(order.TableId.HasValue&&(q.Status is "Closed" or "Cancelled")){var table=await db.Tables.SingleOrDefaultAsync(x=>x.Id==order.TableId&&x.StoreId==sid);if(table is not null)table.Status="Available";}
+ if(order.Channel=="Table"&&q.Status=="Closed"&&order.TableId.HasValue){var mergeGroup=await db.TableMergeGroups.SingleOrDefaultAsync(g=>g.StoreId==sid&&g.IsActive&&db.TableMergeMembers.Any(m=>m.GroupId==g.Id&&m.TableId==order.TableId.Value));if(mergeGroup is not null){mergeGroup.IsActive=false;db.TableMergeMembers.RemoveRange(db.TableMergeMembers.Where(m=>m.GroupId==mergeGroup.Id));}}
  await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Ok(new{order.Id,order.OrderNumber,order.Status,order.ClosedAtUtc});
 });
