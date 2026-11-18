@@ -23,4 +23,9 @@ CREATE INDEX IX_OrderPayments_Store_Order_PaidAt ON dbo.OrderPayments(StoreId,Sa
 CREATE INDEX IX_SalesOrders_Store_Status_Created ON dbo.SalesOrders(StoreId,Status,CreatedAtUtc DESC);
 CREATE INDEX IX_StockMovements_Store_Item_Created ON dbo.StockMovements(StoreId,StockItemId,CreatedAtUtc DESC);
 CREATE INDEX IX_SalesOrderLines_SaleItem ON dbo.SalesOrderLines(SaleItemId);
+
+CREATE TABLE dbo.TableMergeGroups(Id int IDENTITY PRIMARY KEY,StoreId int NOT NULL,AnchorTableId int NOT NULL,CreatedAtUtc datetime2(3) NOT NULL DEFAULT SYSUTCDATETIME(),IsActive bit NOT NULL DEFAULT 1,CONSTRAINT FK_TableMergeGroups_Stores FOREIGN KEY(StoreId) REFERENCES dbo.Stores(Id),CONSTRAINT FK_TableMergeGroups_AnchorTable FOREIGN KEY(AnchorTableId) REFERENCES dbo.DiningTables(Id));
+CREATE UNIQUE INDEX UX_TableMergeGroups_Store_Anchor_Active ON dbo.TableMergeGroups(StoreId,AnchorTableId) WHERE IsActive=1;
+CREATE TABLE dbo.TableMergeMembers(Id int IDENTITY PRIMARY KEY,GroupId int NOT NULL,TableId int NOT NULL,CONSTRAINT FK_TableMergeMembers_Groups FOREIGN KEY(GroupId) REFERENCES dbo.TableMergeGroups(Id) ON DELETE CASCADE,CONSTRAINT FK_TableMergeMembers_Tables FOREIGN KEY(TableId) REFERENCES dbo.DiningTables(Id),CONSTRAINT UQ_TableMergeMembers_Group_Table UNIQUE(GroupId,TableId));
+CREATE UNIQUE INDEX UX_TableMergeMembers_Table ON dbo.TableMergeMembers(TableId);
 COMMIT TRANSACTION;
