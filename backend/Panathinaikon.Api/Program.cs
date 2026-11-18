@@ -322,6 +322,25 @@ api.MapPost("/orders/{id:int}/payments/batch",async Task<IResult> (int id,Create
  db.OrderPayments.AddRange(rows);await db.SaveChangesAsync();await tx.CommitAsync();
  return Results.Created($"/api/orders/{id}/payments",new{payments=rows.Select(x=>new{x.Id,x.Amount,x.Method,x.PaidAtUtc}),TotalPaid=paid+total,Outstanding=order.Total-paid-total});
 });
+api.MapPost("/orders/merged-payments/batch",async Task<IResult> (CreateMergedOrderPaymentBatchRequest q,ClaimsPrincipal u,AppDbContext db)=>{
+ var sid=int.Parse(u.FindFirstValue("store_id")!);
+ if(q.OrderIds is null||q.OrderIds.Count is <2 or >8||q.OrderIds.Distinct().Count()!=q.OrderIds.Count)return Results.BadRequest(new{message="Η συνολική πληρωμή απαιτεί από 2 έως 8 διαφορετικές παραγγελίες."});
+ if(q.Payments is null||q.Payments.Count is <1 or >5)return Results.BadRequest(new{message="Η σύνθετη πληρωμή πρέπει να περιλαμβάνει από 1 έως 5 τρόπους."});
+ var allowed=new[]{"Cash","Card","IRIS"};
+ if(q.Payments.Any(x=>x.Amount<=0||x.Method is null||!allowed.Contains(x.Method.Trim()))||q.Payments.Any(x=>decimal.Round(x.Amount,2)!=x.Amount))return Results.BadRequest(new{message="Κάθε πληρωμή πρέπει να έχει θετικό ποσό με έως δύο δεκαδικά ψηφία και έγκυρο τρόπο."});
+ await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+ var orders=await db.Orders.Where(x=>x.StoreId==sid&&q.OrderIds.Contains(x.Id)).OrderBy(x=>x.Id).ToListAsync();
+ if(orders.Count!=q.OrderIds.Count)return Results.NotFound(new{message="Μία ή περισσότερες παραγγελίες δεν βρέθηκαν."});
+ if(orders.Any(x=>x.Channel!="Table"||x.Status is "Cancelled" or "Closed"))return Results.Conflict(new{message="Η συνολική πληρωμή αφορά μόνο ενεργές παραγγελίες τραπεζιών."});
+ var balances=new Dictionary<int,decimal>();
+ foreach(var order in orders){var paid=await db.OrderPayments.Where(x=>x.StoreId==sid&&x.SalesOrderId==order.Id).SumAsync(x=>(decimal?)x.Amount)??0m;balances[order.Id]=Math.Max(0m,order.Total-paid);}
+ var requested=decimal.Round(q.Payments.Sum(x=>x.Amount),2);var available=balances.Values.Sum();
+ if(requested>available)return Results.Conflict(new{message=$"Το σύνολο ({requested:0.00} €) υπερβαίνει το συνολικό υπόλοιπο ({available:0.00} €)."});
+ var rows=new List<OrderPayment>();
+ foreach(var payment in q.Payments){var remaining=payment.Amount;foreach(var order in orders){if(remaining<=0)break;var allocation=Math.Min(remaining,balances[order.Id]);if(allocation<=0)continue;rows.Add(new OrderPayment{StoreId=sid,SalesOrderId=order.Id,Amount=decimal.Round(allocation,2),Method=payment.Method.Trim()});balances[order.Id]-=allocation;remaining-=allocation;}}
+ db.OrderPayments.AddRange(rows);await db.SaveChangesAsync();await tx.CommitAsync();
+ return Results.Created("/api/orders/merged-payments/batch",new{payments=rows.Select(x=>new{x.Id,x.SalesOrderId,x.Amount,x.Method,x.PaidAtUtc}),TotalPaid=requested,Outstanding=available-requested});
+});
 api.MapPatch("/orders/{id:int}/status",async Task<IResult> (int id,UpdateOrderStatusRequest q,ClaimsPrincipal u,AppDbContext db)=>{
  var sid=int.Parse(u.FindFirstValue("store_id")!);
  await using var tx=await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -393,6 +412,7 @@ public sealed record CreateOrderLinesRequest(List<CreateOrderLineRequest> Lines)
 public sealed record UpdateOrderStatusRequest(string Status);
 
 public sealed record CreateOrderPaymentRequest(decimal Amount,string Method,string? Reference);
+public sealed record CreateMergedOrderPaymentBatchRequest(List<int> OrderIds,List<CreateOrderPaymentRequest> Payments);
 
 public sealed record CreateCustomerRequest(string Name,string? Phone,string? Address);
 

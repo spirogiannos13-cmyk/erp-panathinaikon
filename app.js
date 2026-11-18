@@ -21,7 +21,7 @@ let menu=defaultMenu.map(item=>({...item}));
 try{const saved=JSON.parse(localStorage.getItem("panathinaikon-menu")||"null");if(Array.isArray(saved))menu=saved;}catch{}
 const deliveryStages=[{key:"new",label:"Νέα",next:"preparing",action:"Έναρξη προετοιμασίας"},{key:"preparing",label:"Σε προετοιμασία",next:"ready",action:"Σήμανση ως έτοιμη"},{key:"ready",label:"Έτοιμη",next:"dispatched",action:"Έκδοση απόδειξης & αναχώρηση"},{key:"dispatched",label:"Σε διανομή",next:"completed",action:"Καταχώριση παράδοσης"},{key:"completed",label:"Παραδόθηκε",next:null,action:"Ολοκληρώθηκε"}];
 let savedStates={};try{savedStates=JSON.parse(localStorage.getItem("panathinaikon-table-states")||"{}");}catch{}
-let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderPhone="",orderAddress="",orderNote="",orderMode="takeaway",discountPercent=0,selectedCustomerId=null,itemsSearch="",stockSearch="",recipeSearch="",tableDiscounts={},tableOrderContext=null,tableOrderId=null,activeTableOrder=null,activeTableArea="Όλα",floorplanEditMode=false;
+let activeBoard="tables",showAll=true,selectedTable=0,cart={},selectedCategory="Όλα",productSearch="",orderCustomer="",orderPhone="",orderAddress="",orderNote="",orderMode="takeaway",discountPercent=0,selectedCustomerId=null,itemsSearch="",stockSearch="",recipeSearch="",tableDiscounts={},tableOrderContext=null,tableOrderId=null,activeTableOrder=null,tableOrderEntries=[],activeTableArea="Όλα",floorplanEditMode=false;
 const grid=document.querySelector("#orderGrid"),title=document.querySelector("#boardTitle"),description=document.querySelector("#boardDescription"),toast=document.querySelector("#toast"),summary=document.querySelector("#floorplanSummary"),help=document.querySelector("#tableHelp");
 const tableModal=document.querySelector("#tableModal"),receiptModal=document.querySelector("#receiptModal");
 const money=n=>n.toLocaleString("el-GR",{style:"currency",currency:"EUR"});
@@ -305,7 +305,7 @@ async function renderDashboard(){
 }
 
 
-async function showOrderPaymentDialog(orderId, outstanding, onSaved){
+async function showOrderPaymentDialog(orderId, outstanding, onSaved, orderIds=[]){
  const balance=Math.max(0,Math.round(Number(outstanding)*100));
  if(!orderId||balance<=0){showToast("Δεν υπάρχει υπόλοιπο προς εξόφληση.");return;}
  document.querySelector("#paymentEntryModal")?.remove();
@@ -335,7 +335,7 @@ async function showOrderPaymentDialog(orderId, outstanding, onSaved){
   if(payments.some(x=>!Number.isFinite(x.amount)||x.amount<=0)){error.textContent="Συμπλήρωσε θετικό ποσό σε κάθε γραμμή.";return;}
   if(total>balance){error.textContent="Το σύνολο υπερβαίνει το υπόλοιπο εξόφλησης.";return;}
   const button=modal.querySelector("#paymentEntrySubmit");button.disabled=true;button.textContent="Καταχώριση…";
-  try{await apiRequest("/api/orders/"+orderId+"/payments/batch",{method:"POST",body:JSON.stringify({payments})});modal.remove();await onSaved?.();showToast(total===balance?"Η παραγγελία εξοφλήθηκε.":"Η πληρωμή καταχωρίστηκε. Παραμένει υπόλοιπο "+fmt(balance-total)+".");}
+  try{if(orderIds.length>1){await apiRequest("/api/orders/merged-payments/batch",{method:"POST",body:JSON.stringify({orderIds,payments})});}else{await apiRequest("/api/orders/"+orderId+"/payments/batch",{method:"POST",body:JSON.stringify({payments})});}modal.remove();await onSaved?.();showToast(total===balance?"Ο συνολικός λογαριασμός εξοφλήθηκε.":"Η πληρωμή καταχωρίστηκε. Παραμένει υπόλοιπο "+fmt(balance-total)+".");}
   catch(e){error.textContent=e.message;button.disabled=false;button.textContent="Καταχώριση πληρωμής";}
  });
 }
@@ -474,7 +474,7 @@ function renderBoard(){
  renderDelivery();
 }
 async function openTable(index){
- selectedTable=index;const row=boards.tables.items[index];tableOrderId=null;activeTableOrder=null;
+ selectedTable=index;const row=boards.tables.items[index];tableOrderId=null;activeTableOrder=null;tableOrderEntries=[];
  document.querySelector("#tableModalTitle").textContent=row[0];
  document.querySelector("#tableModalSubtitle").textContent=(row.area||"Ισόγειο")+" · "+row[1];
  const details=document.querySelector("#tableOrderDetails");details.onclick=async event=>{const button=event.target.closest("[data-unmerge-group]");if(!button)return;const groupId=Number(button.dataset.unmergeGroup);if(!confirm("Να αποσυνδεθούν τα συγχωνευμένα τραπέζια; Οι παραγγελίες και οι πληρωμές δεν θα διαγραφούν."))return;button.disabled=true;try{await apiRequest("/api/table-merges/"+groupId,{method:"DELETE"});await loadSqlData();closeTable();showToast("Τα τραπέζια αποσυνδέθηκαν.");}catch(error){showToast(error.message);button.disabled=false;}};details.innerHTML='<p class="table-order-empty">Φόρτωση λογαριασμού…</p>';
@@ -485,7 +485,7 @@ async function openTable(index){
  const mergeGroup=(apiConfig.tableMerges||[]).find(g=>(g.members||[]).some(m=>m.id===row.id));const unmergeButton=mergeGroup?'<div class="merged-table-actions"><button type="button" class="secondary-button" data-unmerge-group="'+mergeGroup.id+'">Αποσύνδεση τραπεζιών</button></div>':"";
  try{const members=mergeGroup?(mergeGroup.members||[]):[{id:row.id,name:row[0]}];const memberIds=members.map(m=>m.id);const summaries=(apiConfig.orders||[]).filter(o=>memberIds.includes(o.tableId)&&o.channel==="Table"&&["Open","Preparing"].includes(o.status));
   if(!summaries.length){details.innerHTML=unmergeButton+'<p class="table-order-empty">Δεν υπάρχει ενεργή παραγγελία. Μπορείς να ξεκινήσεις νέα.</p>';return;}
-  const orderEntries=await Promise.all(summaries.map(async s=>{const [order,payments]=await Promise.all([apiRequest("/api/orders/"+s.id),apiRequest("/api/orders/"+s.id+"/payments")]);return {order,payments};}));const order=orderEntries[0].order;activeTableOrder=order;tableOrderId=order.id;const paid=orderEntries.reduce((sum,x)=>sum+x.payments.reduce((n,p)=>n+Number(p.amount||0),0),0),combinedTotal=orderEntries.reduce((sum,x)=>sum+Number(x.order.total),0),balance=Math.max(0,combinedTotal-paid);
+  const orderEntries=await Promise.all(summaries.map(async s=>{const [order,payments]=await Promise.all([apiRequest("/api/orders/"+s.id),apiRequest("/api/orders/"+s.id+"/payments")]);return {order,payments};}));tableOrderEntries=orderEntries;const order=orderEntries[0].order;activeTableOrder=order;tableOrderId=order.id;const paid=orderEntries.reduce((sum,x)=>sum+x.payments.reduce((n,p)=>n+Number(p.amount||0),0),0),combinedTotal=orderEntries.reduce((sum,x)=>sum+Number(x.order.total),0),balance=Math.max(0,combinedTotal-paid);
   const minutes=Math.max(0,Math.floor((Date.now()-new Date(order.createdAtUtc).getTime())/60000));
   details.innerHTML=unmergeButton+'<div class="table-order-summary"><div><span>ΤΡΑΠΕΖΙΑ</span><strong>'+escapeCustomerText(members.map(m=>m.name).join(" + "))+'</strong></div><div><span>ΠΑΡΑΓΓΕΛΙΕΣ</span><strong>'+orderEntries.length+'</strong></div><div><span>ΚΑΤΑΣΤΑΣΗ</span><strong>'+(orderEntries.some(x=>x.order.status==="Preparing")?"Σε προετοιμασία":"Ανοιχτή")+'</strong></div></div>'+orderEntries.map(x=>'<section class="merged-order-section"><h3>'+escapeCustomerText(members.find(m=>m.id===x.order.tableId)?.name||"Τραπέζι")+" · "+escapeCustomerText(x.order.orderNumber)+'</h3><div class="table-order-lines">'+x.order.lines.map(line=>'<div><span>'+Number(line.quantity)+' × '+escapeCustomerText(line.itemNameSnapshot)+'</span><b>'+money(Number(line.lineTotal))+'</b></div>').join("")+'</div><small>Πληρώθηκε: '+money(x.payments.reduce((n,p)=>n+Number(p.amount||0),0))+'</small></section>').join("")+'<div class="table-order-totals"><div><span>Σύνολο</span><b>'+money(combinedTotal)+'</b></div><div><span>Πληρώθηκε</span><b>'+money(paid)+'</b></div><div class="table-order-balance"><span>Υπόλοιπο</span><strong>'+money(balance)+'</strong></div></div>';
   document.querySelector("#tablePay").hidden=balance<=0;
@@ -650,8 +650,8 @@ if(localStorage.getItem("panathinaikon-theme")==="dark")document.body.classList.
 document.querySelector("#closeTableModal").addEventListener("click",closeTable);
 tableModal.addEventListener("click",e=>{if(e.target===tableModal)closeTable();});
 document.querySelector("#tableStartOrder").addEventListener("click",()=>{if(tableOrderId&&activeTableOrder?.status!=="Open")return;tableOrderContext=selectedTable;cart={};closeTable();setBoardTab("takeaway");showToast((tableOrderId?"Πρόσθεσε είδη στην παραγγελία του ":"Επίλεξε είδη για το ")+boards.tables.items[selectedTable][0]+".");});
-document.querySelector("#tablePay").addEventListener("click",async()=>{if(!tableOrderId||!activeTableOrder)return;try{const payments=await apiRequest("/api/orders/"+tableOrderId+"/payments");const balance=Math.max(0,Number(activeTableOrder.total)-payments.reduce((sum,p)=>sum+Number(p.amount||0),0));void showOrderPaymentDialog(tableOrderId,balance,async()=>{await loadSqlData();await openTable(selectedTable);});}catch(error){showToast(error.message);}});
-document.querySelector("#tableClose").addEventListener("click",async()=>{if(!apiConfig.connected){showToast("Συνδέσου στη SQL Server για να κλείσεις τραπέζι.");return;}if(!tableOrderId){showToast("Δεν υπάρχει ενεργή παραγγελία για κλείσιμο.");return;}if(!confirm("Να κλείσει το τραπέζι αφού εξοφληθεί ο λογαριασμός;"))return;try{await apiRequest("/api/orders/"+tableOrderId+"/status",{method:"PATCH",body:JSON.stringify({status:"Closed"})});await loadSqlData();closeTable();showToast("Το τραπέζι έκλεισε και αποδεσμεύτηκε.");}catch(error){showToast(error.message);}});
+document.querySelector("#tablePay").addEventListener("click",async()=>{if(!tableOrderId||!activeTableOrder||!tableOrderEntries.length)return;try{const balance=tableOrderEntries.reduce((sum,x)=>sum+Math.max(0,Number(x.order.total)-x.payments.reduce((n,p)=>n+Number(p.amount||0),0)),0);const orderIds=tableOrderEntries.map(x=>x.order.id);void showOrderPaymentDialog(tableOrderId,balance,async()=>{await loadSqlData();await openTable(selectedTable);},orderIds);}catch(error){showToast(error.message);}});
+document.querySelector("#tableClose").addEventListener("click",async()=>{if(!apiConfig.connected){showToast("Συνδέσου στη SQL Server για να κλείσεις τραπέζι.");return;}if(!tableOrderEntries.length){showToast("Δεν υπάρχει ενεργή παραγγελία για κλείσιμο.");return;}if(!confirm("Να κλείσουν όλες οι παραγγελίες των συγχωνευμένων τραπεζιών αφού εξοφληθούν;"))return;try{for(const entry of tableOrderEntries){if(entry.order.status==="Closed")continue;await apiRequest("/api/orders/"+entry.order.id+"/status",{method:"PATCH",body:JSON.stringify({status:"Closed"})});}await loadSqlData();closeTable();showToast("Οι παραγγελίες έκλεισαν και τα τραπέζια αποδεσμεύτηκαν.");}catch(error){showToast(error.message);}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeTable();closeTableSetupModal();receiptModal.hidden=true;}});
 function showToast(message){toast.textContent=message;toast.classList.add("show");window.setTimeout(()=>toast.classList.remove("show"),2600);}
 document.querySelector("#today").textContent=new Intl.DateTimeFormat("el-GR",{weekday:"short",day:"numeric",month:"short",year:"numeric"}).format(new Date());
